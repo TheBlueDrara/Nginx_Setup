@@ -16,16 +16,18 @@ function main(){
     echo -e "a) install nginx\n
              b) Check if VH exist, if not, configure your own\n
              c) Create a public html folder\n
-             d) Create an authentication\n
+             d) Create an authentication using htpasswd\n
+             e) Create an authentication using PAM\n
              *) Exit"
              
-    while getopts "a,b,c,d,*" NAME
+    while getopts "a,b,c,d,e,*" NAME
     do
         case $NAME in
             a) install_nginx
             b) configure_vh
             c) enable_user_dir
             d) auth
+            e) create_pam
             *) exit 0 
         esac
     done
@@ -49,11 +51,13 @@ function install_nginx(){
         read -r PAR1
         [ $PAR1 == "yes" ]; then
         sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES
+        if [ $? -eq 0 ] && echo "Everything installed correctly!" || echo " Failed to install"
+        fi
     else
         echo "Goodbye!"
         
     fi
-    main
+    main 
 }
 
 function configure_vh(){
@@ -118,21 +122,38 @@ function auth(){
     main
 
 }
- 
+
+function create_pam(){
+
+    sudo apt-get update && sudo apt-get install libpam0g-dev libpam-modules
+    echo "server {
+        ...
+        ...
+
+       location /auth-pam {
+           auth_pam "PAM Authentication";
+           auth_pam_service_name "nginx";
+       }
+}
+" >> $SITES_AVAILABLE/$SERVER_NAME
+    echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
+    usermod -aG shadow www-data
+    systemctl restart nginx
+    mkdir /var/www/html/auth-pam
+    echo " <html>
+    <body>
+    <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
+    Test Page for PAM Auth
+    </div>
+    </body>
+    </html>" >> /var/www/html/auth-pam/index.html 
+
+
+}
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+# CGI function
 main
 
 
