@@ -5,7 +5,7 @@
 
 
 
-# Contents -
+### Contents -
 
 - Configures a new virtual host
 - Creats a public html
@@ -15,12 +15,12 @@
 ##### Please do take in mind this script work on LMDE - Linux Mint Debian Edition, and it may not work as well on other distors.
 
 
-#### You can find the contributors here:
+### You can find the contributors here:
 
 [CONTRIBUTORS](CONTRIBUTORS.md)
 
 
-#### You can see the task here:
+### You can see the task here:
 
 [TASK](TASK.md)
 
