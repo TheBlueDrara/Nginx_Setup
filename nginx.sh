@@ -4,7 +4,7 @@
 #Porpuse 
 #Date 1.3.2025
 set -o nounset
-set -o exiterr
+set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
 SITES_AVAILABLE="/etc/nginx/sites-available"
@@ -55,8 +55,7 @@ function install_nginx(){
         if [ $? -eq 0 ] && echo "Everything installed correctly!" || echo " Failed to install"
         fi
     else
-        echo "Goodbye!"
-        
+        echo "Goodbye!"  
     fi
     main 
 }
