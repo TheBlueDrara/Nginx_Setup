@@ -11,24 +11,25 @@ SITES_AVAILABLE="/etc/nginx/sites-available"
 SITES_ENABLED="/etc/nginx/sites-enabled"
 
 function main(){
-
+    while true; do
+    echo "======================================================"
     echo "Please chose your desired option"
-    echo -e "a) install nginx\n
-             b) Check if VH exist, if not, configure your own\n
-             c) Create a public html folder\n
-             d) Create an authentication using htpasswd\n
-             e) Create an authentication using PAM\n
-             *) Exit"
-             
-    while getopts "a,b,c,d,e,*" NAME
-    do
-        case $NAME in
-            a) install_nginx
-            b) configure_vh
-            c) enable_user_dir
-            d) auth
-            e) create_pam
-            *) exit 0 
+    echo -e "a) install nginx"
+    echo -e "b) Check if VH exist, if not, configure your own"
+    echo -e "c) Create a public html folder"
+    echo -e "d) Create an authentication using htpasswd"
+    echo -e "e) Create an authentication using PAM"
+    echo -e "*) Exit"
+    echo "======================================================"
+    
+    read -p "Enter your choice: " OPT
+        case $OPT in
+            a) install_nginx ;;
+            b) configure_vh ;;
+            c) enable_user_dir ;;
+            d) auth ;;
+            e) create_pam ;;
+            *) echo "Existing"; exit 0 ;;
         esac
     done
 }
@@ -62,8 +63,7 @@ function install_nginx(){
 
 function configure_vh(){
 
-    echo "please enter your server name:"
-    read -r FIND_SERVER
+    read -rp "Please enter your servers name: " FIND_SERVER
     VHOSTS=$(grep $FIND_SERVER $SITES_AVAILABLE 2>/dev/null)
 
     if [ -n $VHOSTS ]; then
@@ -73,11 +73,9 @@ function configure_vh(){
         echo "No virtual host found"
     fi
 
-    echo "Would you like to create a new VH? (yes/no)"
-    read -r PAR2
+    read -rp "Would you like to create a new VH? (yes/no)?" PAR2
     if [ $PAR2 == "yes" ]; then
-    echo "Please enter new VH name:"
-    read -r SERVER_NAME
+    read -rp "Please enter new VH name: " SERVER_NAME
     touch $SITES_AVAIABLE/$SERVER_NAME
     echo "server {
     listen 80;
@@ -85,10 +83,8 @@ function configure_vh(){
     root /var/www/$SERVER_NAME;
     index index.html; }" >> $SITES_AVAIABLE/$SERVER_NAME
     ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
-    echo "Please enter a header name for your webpage:"
-    read -r HEADER_NAME
+    read -rp "Please enter a header name for yourwebpage" HEADER_NAME
     echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME2/index.html
-
     sudo systemctl restart nginx
     curl -I http://$SERVER_NAME
     fi
@@ -109,8 +105,7 @@ function enable_user_dir(){
 function auth(){
     
     sudo apt-get update && sudo apt-get install apache2-utils
-    echo "Please enter a username:"
-    read -r USERNAME
+    read -rp "Please enter a username" USERNAME
     sudo htpasswd -c /etc/nginx/.htpasswd $USERNAME
     echo "location /secure {
     auth_basic "Restricted Area";
@@ -147,14 +142,14 @@ function create_pam(){
     </div>
     </body>
     </html>" >> /var/www/html/auth-pam/index.html 
-
+    main
 
 }
 
 
 
 # CGI function
-main
+main $@
 
 
 
