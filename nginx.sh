@@ -11,6 +11,7 @@ SITES_AVAILABLE="/etc/nginx/sites-available"
 SITES_ENABLED="/etc/nginx/sites-enabled"
 
 function main(){
+
     while true; do
     echo "======================================================"
     echo "Please chose your desired option"
@@ -33,6 +34,7 @@ function main(){
         esac
     done
 }
+
 
 function install_nginx(){
 
@@ -63,6 +65,7 @@ function install_nginx(){
     fi 
 }
 
+
 function configure_vh(){
 
     read -rp "Please enter your servers name: " FIND_SERVER
@@ -77,13 +80,18 @@ function configure_vh(){
 
     read -rp "Would you like to create a new VH? (yes/no)?" PAR2
     if [ $PAR2 == "yes" ]; then
-    read -rp "Please enter new VH name: " SERVER_NAME
-    touch $SITES_AVAIABLE/$SERVER_NAME
-    echo "server {
+        read -rp "Please enter new VH name: " SERVER_NAME
+        touch $SITES_AVAIABLE/$SERVER_NAME
+        VH_CONFIG="
+server {
     listen 80;
     server_name $SERVER_NAME;
     root /var/www/$SERVER_NAME;
-    index index.html; }" >> $SITES_AVAIABLE/$SERVER_NAME
+
+    index index.html; 
+}
+"
+    echo $VH_CONFIG >> $SITES_AVAIABLE/$SERVER_NAME
     ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
     read -rp "Please enter a header name for yourwebpage" HEADER_NAME
     echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME2/index.html
@@ -93,59 +101,86 @@ function configure_vh(){
     main
 }
 
+
 function enable_user_dir(){
 
-    echo 'location ~ ^/~(.+?)(/.*)?$ {
-    alias /home/$1/public_html$2; }' >> $SITES_AVAIABLE/default
+USER_DIR_CONFIG="
+location ~ ^/~(.+?)(/.*)?$ {
+    alias /home/$1/public_html$2;
+}
+"
+    echo $USER_DIR_CONFIG >> $SITES_AVAIABLE/default
     sudo systemctl restart nginx
-    bash curl -I http://localhost/~$USER
-    if [ $? -eq 0 ] && echo "Configured a personal webpage successfully" || echo "Failed"
-    fi
+        if bash curl -I http://localhost/~$USER; then
+            echo "Congrtz!"
+        fi
     main
 }
+
 
 function auth(){
     
-    sudo apt-get update && sudo apt-get install apache2-utils
-    read -rp "Please enter a username" USERNAME
-    sudo htpasswd -c /etc/nginx/.htpasswd $USERNAME
-    echo "location /secure {
+    if sudo apt-get update && sudo apt-get install apache2-utils; then
+        read -rp "Please enter a username" USERNAME
+        sudo htpasswd -c /etc/nginx/.htpasswd $USERNAME
+
+AUTH_CONFIG="
+location /secure {
     auth_basic "Restricted Area";
-    auth_basic_user_file /etc/nginx/.htpasswd; }" >> $SITES_AVAILABLE/$SERVER_NAME
-    sudo systemctl restart nginx
-    curl -u $USERNAME:password -I http://localhost/secure
-    if [ $? -eq 0 ] && echo "Username and Password created successfully!" || echo "Error"
-    fi
+    auth_basic_user_file /etc/nginx/.htpasswd; 
+}
+" 
+        echo $AUTH_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
+            sudo systemctl restart nginx
+            curl -u $USERNAME:password -I http://localhost/secure
+                if [ $? -eq 0 ]; then
+                    echo "Username and Password created successfully!"
+                else
+                    echo "Failed"
+                fi
+     fi
     main
 
 }
 
+
 function create_pam(){
 
-    sudo apt-get update && sudo apt-get install libpam0g-dev libpam-modules
-    echo "server {
-        ...
-        ...
+    if sudo apt-get update && sudo apt-get install libpam0g-dev libpam-modules; then
+        echo "Pam Installed correctly!"
+    else
+        echo "Failed"
+        return 1
+    fi
 
-       location /auth-pam {
-           auth_pam "PAM Authentication";
-           auth_pam_service_name "nginx";
-       }
+PAM_CONFIG="
+server {
+    ...
+    ...
+
+    location /auth-pam {
+        auth_pam "PAM Authentication";
+        auth_pam_service_name "nginx";
+    }
 }
-" >> $SITES_AVAILABLE/$SERVER_NAME
+"
+    echo $PAM_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
     echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
     usermod -aG shadow www-data
     systemctl restart nginx
     mkdir /var/www/html/auth-pam
-    echo " <html>
-    <body>
-    <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
-    Test Page for PAM Auth
-    </div>
-    </body>
-    </html>" >> /var/www/html/auth-pam/index.html 
-    main
 
+PAM_HTML="
+<html>
+    <body>
+        <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
+            Test Page for PAM Auth
+        </div>
+    </body>
+</html>
+"
+    echo $PAM_HTML >> /var/www/html/auth-pam/index.html 
+    main
 }
 
 
