@@ -104,7 +104,7 @@ function enable_user_dir(){
     else
         echo "Dir already exists"
     fi    
-    sudo tee "Hello from $USER !" /home/$USER/public_html/index.html
+    echo "Hello from $USER!" | sudo tee /home/$USER/public_html/index.html
     sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
 server {
     listen 80;
@@ -113,8 +113,9 @@ server {
 
     index index.html;
 
-location ~ ^/~(.+?)(/.*)?$ {
+    location ~ ^/~(.+?)(/.*)?$ {
         alias /home/\$1/public_html\$2;
+        index index.html;
     }
 }
 EOF
