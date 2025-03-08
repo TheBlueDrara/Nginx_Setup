@@ -99,11 +99,11 @@ server {
 
 function enable_user_dir(){
 
-USER_DIR_CONFIG="
+USER_DIR_CONFIG='
 location ~ ^/~(.+?)(/.*)?$ {
     alias /home/$1/public_html$2;
 }
-"
+'
     echo $USER_DIR_CONFIG | tee -a $SITES_AVAILABLE/default >/dev/null
     sudo mkdir /home/$USER/public_html && tee "Hello from $USER !" /home/$USER/public_html/index.html
     sudo systemctl restart nginx
