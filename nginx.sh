@@ -86,7 +86,7 @@ server {
     sudo mkdir /var/www/$SERVER_NAME && sudo touch /var/www/$SERVER_NAME/index.html
 
     read -rp "Please enter a header name for yourwebpage: " HEADER_NAME
-    echo "<h1>$HEADER_NAME</h1>" | tee -a /var/www/$SERVER_NAME/index.html > /dev/null
+    echo "<h1>$HEADER_NAME</h1>" | sudo tee -a /var/www/$SERVER_NAME/index.html > /dev/null
     sudo systemctl restart nginx
     if curl -I http://$SERVER_NAME; then
         echo "Congrtz!"
