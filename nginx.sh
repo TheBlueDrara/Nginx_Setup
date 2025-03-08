@@ -80,10 +80,10 @@ server {
     index index.html; 
 }
 "
-    echo $VH_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
-    ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
+    sudo echo $VH_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
+    sudo ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
     read -rp "Please enter a header name for yourwebpage" HEADER_NAME
-    echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME2/index.html
+    sudo echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME2/index.html
     sudo systemctl restart nginx
     if curl -I http://$SERVER_NAME; then
         echo "Congrtz!"
@@ -102,7 +102,7 @@ location ~ ^/~(.+?)(/.*)?$ {
     alias /home/$1/public_html$2;
 }
 "
-    echo $USER_DIR_CONFIG >> $SITES_AVAILABLE/default
+    sudo echo $USER_DIR_CONFIG >> $SITES_AVAILABLE/default
     sudo systemctl restart nginx
         if bash curl -I http://localhost/~$USER; then
             echo "Congrtz!"
@@ -123,7 +123,7 @@ location /secure {
     auth_basic_user_file /etc/nginx/.htpasswd; 
 }
 " 
-        echo $AUTH_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
+        sudo echo $AUTH_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
             sudo systemctl restart nginx
             curl -u $USERNAME:password -I http://localhost/secure
                 if [ $? -eq 0 ]; then
@@ -157,11 +157,11 @@ server {
     }
 }
 "
-    echo $PAM_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
+    sudo echo $PAM_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
     echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
     usermod -aG shadow www-data
     systemctl restart nginx
-    mkdir /var/www/html/auth-pam
+    sudo mkdir /var/www/html/auth-pam
 
 PAM_HTML="
 <html>
@@ -172,7 +172,7 @@ PAM_HTML="
     </body>
 </html>
 "
-    echo $PAM_HTML >> /var/www/html/auth-pam/index.html 
+    sudo echo $PAM_HTML >> /var/www/html/auth-pam/index.html 
     main
 }
 
