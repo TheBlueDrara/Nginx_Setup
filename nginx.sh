@@ -120,7 +120,7 @@ server {
 }
 EOF
     sudo systemctl restart nginx
-        if bash curl -I http://$SERVER_NAME/~$USER; then
+        if curl -I http://$SERVER_NAME/~$USER; then
             echo "Congrtz!"
         fi
     main
