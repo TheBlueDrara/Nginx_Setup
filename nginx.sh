@@ -120,6 +120,8 @@ server {
 }
 EOF
     sudo systemctl restart nginx
+    sudo chmod +x /home/$USER
+    sudo chmod 755 /home/$USER/public_html
         if curl -I http://$SERVER_NAME/~$USER; then
             echo "Congrtz!"
         fi
@@ -133,20 +135,27 @@ function auth(){
         read -rp "Please enter a username" USERNAME
         sudo htpasswd -c /etc/nginx/.htpasswd $USERNAME
 
-AUTH_CONFIG="
+        sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
+server {
+    listen 80;
+    server_name $SERVER_NAME;
+    root /var/www/$SERVER_NAME;
+
+    index index.html
+
 location /secure {
     auth_basic "Restricted Area";
     auth_basic_user_file /etc/nginx/.htpasswd; 
+    }
 }
-" 
-        echo $AUTH_CONFIG | tee -a $SITES_AVAILABLE/$SERVER_NAME
-            sudo systemctl restart nginx
-            curl -u $USERNAME:password -I http://localhost/secure
-                if [ $? -eq 0 ]; then
-                        echo "Username and Password created successfully!"
-                    else
-                    echo "Failed"
-                fi
+EOF
+        sudo systemctl restart nginx
+        curl -u $USERNAME:password -I http://$SERVER_NAME/secure
+        if [ $? -eq 0 ]; then
+            echo "Username and Password created successfully!"
+        else
+            echo "Failed"       
+        fi
      fi
     main
 
@@ -162,24 +171,26 @@ function create_pam(){
         return 1
     fi
 
-PAM_CONFIG="
+    sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null <<EOF
 server {
-    ...
-    ...
+    listen 80;
+    server_name $SERVER_NAME;
+    root /var/www/$SERVER_NAME;
+
+    index index.html
 
     location /auth-pam {
         auth_pam "PAM Authentication";
         auth_pam_service_name "nginx";
     }
 }
-"
-    echo $PAM_CONFIG | tee -a $SITES_AVAILABLE/$SERVER_NAME
+EOF
+
     echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
     usermod -aG shadow www-data
     systemctl restart nginx
     sudo mkdir /var/www/html/auth-pam
-
-PAM_HTML="
+    sudo tee /var/www/html/auth-pam/index.html >/dev/null << EOF
 <html>
     <body>
         <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
@@ -187,8 +198,8 @@ PAM_HTML="
         </div>
     </body>
 </html>
-"
-    echo $PAM_HTML | tee -a /var/www/html/auth-pam/index.html 
+EOF
+
     main
 }
 
