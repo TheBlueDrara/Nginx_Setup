@@ -44,18 +44,20 @@ function install_nginx(){
         MISSING_PACKAGES+="nginx-extras "
     fi
 
-    if [ -n "$MISSING_PACKAGES" ]; then
+    if [ -z "$MISSING_PACKAGES" ]; then
         echo "nginx and enginx-extras are already installed..."
-    elif
+
+    elif [ -n $MISSING_PACKAGES ]; then
         echo "The following packages are missing: $MISSING_PACKAGES"
-        echo "Would you like to install them (yes/no)?"
-        read -r PAR1
-        [ $PAR1 == "yes" ]; then
-        sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES
-        if [ $? -eq 0 ] && echo "Everything installed correctly!" || echo " Failed to install"
-        fi
+        read -rp "Would you like to install (yes/no) " PAR1
+            if [ $PAR1 == "yes" ]; then
+            sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES
+            fi
+
+            if [ $? -eq 0 ] && echo "Everything installed correctly!" || echo " Failed to install"
+            fi
     else
-        echo "Goodbye!"  
+        echo "Good Bye"
     fi
     main 
 }
