@@ -7,8 +7,8 @@ set -o nounset
 set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
-SITES_AVAILABLE="/etc/nginx/sites-available"
-SITES_ENABLED="/etc/nginx/sites-enabled"
+SITES_AVAILABLE="/etc/nginx/sites-available/"
+SITES_ENABLED="/etc/nginx/sites-enabled/"
 
 function main(){
 
@@ -70,7 +70,7 @@ function install_nginx(){
 function configure_vh(){
 
     read -rp "Please enter new VH name: " SERVER_NAME
-    touch $SITES_AVAIABLE/$SERVER_NAME
+    touch $SITES_AVAILABLE/$SERVER_NAME
 VH_CONFIG="
 server {
     listen 80;
@@ -80,7 +80,7 @@ server {
     index index.html; 
 }
 "
-    echo $VH_CONFIG >> $SITES_AVAIABLE/$SERVER_NAME
+    echo $VH_CONFIG >> $SITES_AVAILABLE/$SERVER_NAME
     ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
     read -rp "Please enter a header name for yourwebpage" HEADER_NAME
     echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME2/index.html
@@ -102,7 +102,7 @@ location ~ ^/~(.+?)(/.*)?$ {
     alias /home/$1/public_html$2;
 }
 "
-    echo $USER_DIR_CONFIG >> $SITES_AVAIABLE/default
+    echo $USER_DIR_CONFIG >> $SITES_AVAILABLE/default
     sudo systemctl restart nginx
         if bash curl -I http://localhost/~$USER; then
             echo "Congrtz!"
