@@ -177,7 +177,7 @@ server {
     server_name $SERVER_NAME;
     root /var/www/$SERVER_NAME;
 
-    index index.html
+    index index.html;
 
     location /auth-pam {
         auth_pam "PAM Authentication";
