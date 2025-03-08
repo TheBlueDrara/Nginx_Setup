@@ -208,7 +208,6 @@ EOF
 
 
 
-# CGI function
 main $@
 
 
