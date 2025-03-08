@@ -131,8 +131,8 @@ EOF
 
 function auth(){
     
-    if sudo apt-get update && sudo apt-get install apache2-utils; then
-        read -rp "Please enter a username" USERNAME
+    if sudo apt-get update && sudo apt-get install apache2-utils -y; then
+        read -rp "Please enter a username: " USERNAME
         sudo htpasswd -c /etc/nginx/.htpasswd $USERNAME
 
         sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
@@ -141,7 +141,7 @@ server {
     server_name $SERVER_NAME;
     root /var/www/$SERVER_NAME;
 
-    index index.html
+    index index.html;
 
 location /secure {
     auth_basic "Restricted Area";
@@ -185,7 +185,7 @@ server {
     }
 }
 EOF
-
+    sudo restart nginx
     echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
     usermod -aG shadow www-data
     systemctl restart nginx
