@@ -72,22 +72,22 @@ function configure_vh(){
 
     read -rp "Please enter new VH name: " SERVER_NAME
     sudo touch $SITES_AVAILABLE/$SERVER_NAME
-VH_CONFIG="
+    sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
 server {
     listen 80;
     server_name $SERVER_NAME;
     root /var/www/$SERVER_NAME;
 
-    index index.html; 
-}
-"
-    echo $VH_CONFIG | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME > /dev/null
+    index index.html;
+    }
+EOF
+
     sudo ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
     sudo mkdir /var/www/$SERVER_NAME
     read -rp "Please enter a header name for your webpage: " HEADER_NAME
     echo "<h1>$HEADER_NAME</h1>" | sudo tee /var/www/$SERVER_NAME/index.html > /dev/null
-    sudo systemctl restart nginx
     echo "127.0.0.80 $SERVER_NAME" | sudo tee -a /etc/hosts
+    sudo systemctl restart nginx
     if curl -I http://$SERVER_NAME; then
         echo "Congrtz!"
     else
@@ -99,15 +99,22 @@ server {
 
 function enable_user_dir(){
 
-USER_DIR_CONFIG='
-location ~ ^/~(.+?)(/.*)?$ {
-    alias /home/$1/public_html$2;
-}
-'
-    echo $USER_DIR_CONFIG | sudo tee -a $SITES_AVAILABLE/default >/dev/null
     sudo mkdir /home/$USER/public_html && sudo tee "Hello from $USER !" /home/$USER/public_html/index.html
+    sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
+server {
+    listen 80;
+    server_name $SERVER_NAME;
+    root /var/www/$SERVER_NAME;
+
+    index index.html;
+
+location ~ ^/~(.+?)(/.*)?$ {
+        alias /home/\$1/public_html\$2;
+    }
+}
+EOF
     sudo systemctl restart nginx
-        if bash curl -I http://localhost/~$USER; then
+        if bash curl -I http://$SERVER_NAME/~$USER; then
             echo "Congrtz!"
         fi
     main
@@ -130,8 +137,8 @@ location /secure {
             sudo systemctl restart nginx
             curl -u $USERNAME:password -I http://localhost/secure
                 if [ $? -eq 0 ]; then
-                    echo "Username and Password created successfully!"
-                else
+                        echo "Username and Password created successfully!"
+                    else
                     echo "Failed"
                 fi
      fi
