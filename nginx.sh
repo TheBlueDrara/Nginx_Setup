@@ -7,7 +7,7 @@ set -o nounset
 set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
-SITES_AVAILABLE="/etc/nginx/sites-available/"
+SITES_AVAILABLE="/etc/nginx/sites-available"
 SITES_ENABLED="/etc/nginx/sites-enabled/"
 
 function main(){
@@ -70,7 +70,7 @@ function install_nginx(){
 function configure_vh(){
 
     read -rp "Please enter new VH name: " SERVER_NAME
-    touch $SITES_AVAILABLE/$SERVER_NAME
+    sudo touch $SITES_AVAILABLE/$SERVER_NAME
 VH_CONFIG="
 server {
     listen 80;
