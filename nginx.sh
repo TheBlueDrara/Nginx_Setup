@@ -37,7 +37,8 @@ function main(){
 
 
 function install_nginx(){
-
+    
+    MISSING_PACKAGES=()
     if ! dpkg -l |grep -E '^\s*ii\s+nginx' > /dev/null; then
         MISSING_PACKAGES+=("nginx")
     fi
