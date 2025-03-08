@@ -16,7 +16,7 @@ function main(){
     echo "======================================================"
     echo "Please chose your desired option"
     echo -e "a) install nginx"
-    echo -e "b) Check if VH exist, if not, configure your own"
+    echo -e "b) Configure new VH"
     echo -e "c) Create a public html folder"
     echo -e "d) Create an authentication using htpasswd"
     echo -e "e) Create an authentication using PAM"
@@ -69,21 +69,9 @@ function install_nginx(){
 
 function configure_vh(){
 
-    read -rp "Please enter your servers name: " FIND_SERVER
-    VHOSTS=$(grep $FIND_SERVER $SITES_AVAILABLE 2>/dev/null)
-
-    if [ -n $VHOSTS ]; then
-        echo "Virtual host found:"
-        echo $VHOSTS
-    else 
-        echo "No virtual host found"
-    fi
-
-    read -rp "Would you like to create a new VH? (yes/no)?" PAR2
-    if [ $PAR2 == "yes" ]; then
-        read -rp "Please enter new VH name: " SERVER_NAME
-        touch $SITES_AVAIABLE/$SERVER_NAME
-        VH_CONFIG="
+    read -rp "Please enter new VH name: " SERVER_NAME
+    touch $SITES_AVAIABLE/$SERVER_NAME
+VH_CONFIG="
 server {
     listen 80;
     server_name $SERVER_NAME;
@@ -97,8 +85,12 @@ server {
     read -rp "Please enter a header name for yourwebpage" HEADER_NAME
     echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME2/index.html
     sudo systemctl restart nginx
-    curl -I http://$SERVER_NAME
+    if curl -I http://$SERVER_NAME; then
+        echo "Congrtz!"
+    else
+        echo "Fail"
     fi
+
     main
 }
 
