@@ -185,9 +185,8 @@ server {
     }
 }
 EOF
-    echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
-    usermod -aG shadow www-data
-    sudo systemctl restart nginx
+    sudo echo "auth account include include common-auth common-account" >> /etc/pam.d/nginx
+    sudo usermod -aG shadow www-data
     sudo mkdir /var/www/html/auth-pam
     sudo tee /var/www/html/auth-pam/index.html >/dev/null << EOF
 <html>
@@ -198,7 +197,7 @@ EOF
     </body>
 </html>
 EOF
-
+    sudo systemctl restart nginx
     main
 }
 
