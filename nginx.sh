@@ -87,6 +87,7 @@ server {
     read -rp "Please enter a header name for yourwebpage: " HEADER_NAME
     echo "<h1>$HEADER_NAME</h1>" | sudo tee /var/www/$SERVER_NAME/index.html > /dev/null
     sudo systemctl restart nginx
+    echo "127.0.0.1 $SERVER_NAME" | sudo tee -a /etc/hosts
     if curl -I http://$SERVER_NAME; then
         echo "Congrtz!"
     else
