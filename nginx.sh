@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 ################################### Start Safe Header ##########################
 #Developed by Alex Umansky aka TheBlueDrara
-#Porpuse 
+#Porpuse a tool to install nginx and config it 
 #Date 1.3.2025
+#Version 0.0.1
 set -o nounset
 set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
 SITES_AVAILABLE="/etc/nginx/sites-available"
 SITES_ENABLED="/etc/nginx/sites-enabled/"
+
+
+
+
 
 function main(){
 
@@ -185,7 +190,7 @@ server {
     }
 }
 EOF
-    echo "auth account include include common-auth common-account"| sudo tee -a /etc/pam.d/nginx
+    echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
     sudo usermod -aG shadow www-data
     sudo mkdir /var/www/html/auth-pam
     sudo tee /var/www/html/auth-pam/index.html >/dev/null << EOF
@@ -205,7 +210,6 @@ EOF
 
 # CGI function
 main $@
-
 
 
 
