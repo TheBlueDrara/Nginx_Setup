@@ -37,30 +37,29 @@ function main(){
 function install_nginx(){
 
     if ! dpkg -l |grep -E '^\s*ii\s+nginx' > /dev/null; then
-        MISSING_PACKAGES+="nginx "
+        MISSING_PACKAGES+=("nginx")
     fi
 
     if ! dpkg -l |grep -E '^\s*ii\s+nginx-extras' > /dev/null; then
-        MISSING_PACKAGES+="nginx-extras "
+        MISSING_PACKAGES+=("nginx-extras")
     fi
 
-    if [ -z "$MISSING_PACKAGES" ]; then
+    if [ ${#MISSING_PACKAGES[@]} -eq 0 ]; then
         echo "nginx and enginx-extras are already installed..."
 
-    elif [ -n $MISSING_PACKAGES ]; then
+    elif [ ${#MISSING_PACKAGES[@]} -gt 0 ] ; then
         echo "The following packages are missing: $MISSING_PACKAGES"
         read -rp "Would you like to install (yes/no) " PAR1
             if [ $PAR1 == "yes" ]; then
-                sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES
+                if sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES; then
+                    echo "installed successfully"
+                else
+                   echo "Failed"
+                fi
             fi
 
-            if [ $? -eq 0 ]
-                echo "Everything installed correctly!"
-            else
-                echo "Failed to install"
-            fi
     else
-        echo "Good Bye"
+        echo "Good bye"
     fi 
 }
 
