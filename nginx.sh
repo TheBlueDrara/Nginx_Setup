@@ -83,8 +83,9 @@ server {
 "
     echo $VH_CONFIG | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME
     sudo ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
+    touch /var/www/$SERVER_NAME/index.html
     read -rp "Please enter a header name for yourwebpage: " HEADER_NAME
-    sudo echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME/index.html
+    echo "<h1>$HEADER_NAME</h1>" >> /var/www/$SERVER_NAME/index.html
     sudo systemctl restart nginx
     if curl -I http://$SERVER_NAME; then
         echo "Congrtz!"
