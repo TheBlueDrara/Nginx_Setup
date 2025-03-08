@@ -99,7 +99,12 @@ EOF
 
 function enable_user_dir(){
 
-    sudo mkdir /home/$USER/public_html && sudo tee "Hello from $USER !" /home/$USER/public_html/index.html
+    if sudo mkdir /home/$USER/public_html; then
+        echo "Created a public_html dir!"
+    else
+        echo "Dir already exists"
+    fi    
+    sudo tee "Hello from $USER !" /home/$USER/public_html/index.html
     sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
 server {
     listen 80;
