@@ -51,15 +51,17 @@ function install_nginx(){
         echo "The following packages are missing: $MISSING_PACKAGES"
         read -rp "Would you like to install (yes/no) " PAR1
             if [ $PAR1 == "yes" ]; then
-            sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES
+                sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES
             fi
 
-            if [ $? -eq 0 ] && echo "Everything installed correctly!" || echo " Failed to install"
+            if [ $? -eq 0 ]
+                echo "Everything installed correctly!"
+            else
+                echo "Failed to install"
             fi
     else
         echo "Good Bye"
-    fi
-    main 
+    fi 
 }
 
 function configure_vh(){
