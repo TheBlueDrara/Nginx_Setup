@@ -29,16 +29,16 @@ each option is a stand alone and will re-configure the last one.
 
 ### You can find the contributors here:
 
-[CONTRIBUTORS](CONTRIBUTORS.md)
+[Contributors](CONTRIBUTORS.md)
 
 
 ### You can see the task here:
 
-[TASK](TASK.md)
+[Task](TASK.md)
 
 
 
-#Daily WarHammer40K quote
+#### Daily WarHammer40K quote
 
 ```
 To break faith with the Omnissiah is to embrace oblivion.
