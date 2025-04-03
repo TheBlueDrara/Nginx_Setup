@@ -18,16 +18,6 @@ SITES_ENABLED="/etc/nginx/sites-enabled/"
 function main(){
 
     while true; do
-    echo "======================================================"
-    echo "Please chose your desired option"
-    echo -e "a) install nginx"
-    echo -e "b) Configure new VH"
-    echo -e "c) Create a public html folder"
-    echo -e "d) Create an authentication using htpasswd"
-    echo -e "e) Create an authentication using PAM"
-    echo -e "*) Exit"
-    echo "======================================================"
-    
     read -p "Enter your choice: " OPT
         case $OPT in
             a) install_nginx ;;
@@ -207,6 +197,18 @@ EOF
 }
 
 
+
+
+
+    echo -e "======================================================\
+    \nPlease chose your desired option\
+    \na) install nginx\
+    \nb) Configure new VH\
+    \nc) Create a public html folder\
+    \nd) Create an authentication using htpasswd\
+    \ne) Create an authentication using PAM\
+    \n*) Exit\
+    \n======================================================"
 
 main $@
 
