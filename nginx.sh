@@ -8,18 +8,19 @@ set -o nounset
 set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
-SITES_AVAILABLE="/etc/nginx/sites-available"
-SITES_ENABLED="/etc/nginx/sites-enabled/"
-
-source /etc/os-realse
-
-
-
+SITES_AVAILABLE=/etc/nginx/sites-available
+SITES_ENABLED=/etc/nginx/sites-enabled/
+LOGFILE=~/Desktop/Nginx_script_logs.txt
+NULL=/dev/null
+source /etc/os-release
 
 
 
 
-if [[ $ID_LIKE == "*debian*" ]]; then
+
+
+
+if [[ $ID_LIKE == "debian" ]]; then
 	echo "Running on Debian-family distro. Executing main code..."
 else
 	echo "This script is designed to run only on Debian-family distro only!"
@@ -45,33 +46,21 @@ function main(){
 
 function install_nginx(){
     
-    MISSING_PACKAGES=()
-    if ! dpkg -l |grep -E '^\s*ii\s+nginx' > /dev/null; then
-        MISSING_PACKAGES+=("nginx")
-    fi
-
-    if ! dpkg -l |grep -E '^\s*ii\s+nginx-extras' > /dev/null; then
-        MISSING_PACKAGES+=("nginx-extras")
-    fi
-
-    if [ ${#MISSING_PACKAGES[@]} -eq 0 ]; then
-        echo "nginx and enginx-extras are already installed..."
-
-    elif [ ${#MISSING_PACKAGES[@]} -gt 0 ] ; then
-        echo "The following packages are missing: $MISSING_PACKAGES"
-        read -rp "Would you like to install (yes/no) " PAR1
-            if [ $PAR1 == "yes" ]; then
-                if sudo apt-get update && sudo apt-get install -y $MISSING_PACKAGES; then
-                    echo "installed successfully"
-                else
-                   echo "Failed"
-                fi
+    tool_list=("nginx" "nginx-extras")
+    for tool in ${tool_list[@]}; do
+        if ! dpkg -s $tool &>$NULL; then
+            echo "Installing $tool..."
+            touch $LOGFILE
+            if ! sudo apt-get install $tool -y >> $LOGFILE 2>&1; then
+            echo "Failed to install $tool"
+            return 1
             fi
 
-    else
-        echo "Good bye"
-    fi
-    main
+        else
+            echo "$tool is already installed."
+        fi
+    done
+    return 0
 }
 
 
