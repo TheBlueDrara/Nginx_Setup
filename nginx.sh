@@ -46,7 +46,7 @@ function main(){
 
 function install_nginx(){
     
-    tool_list=("nginx" "nginx-extras" "TEST")
+    tool_list=("nginx" "nginx-extras")
     for tool in ${tool_list[@]}; do
         if ! dpkg -s $tool &>$NULL; then
             echo "Installing $tool..."
