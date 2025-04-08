@@ -11,8 +11,20 @@ set -o pipefail
 SITES_AVAILABLE="/etc/nginx/sites-available"
 SITES_ENABLED="/etc/nginx/sites-enabled/"
 
+source /etc/os-realse
 
 
+
+
+
+
+
+if [[ $ID_LIKE == "*debian*" ]]; then
+	echo "Running on Debian-family distro. Executing main code..."
+else
+	echo "This script is designed to run only on Debian-family distro only!"
+	exit 1
+fi
 
 
 function main(){
