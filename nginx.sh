@@ -10,7 +10,7 @@ set -o pipefail
 ################################## End Safe Header ############################
 SITES_AVAILABLE=/etc/nginx/sites-available
 SITES_ENABLED=/etc/nginx/sites-enabled/
-LOGFILE=~/Desktop/Nginx_script_logs.txt
+LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
 source /etc/os-release
 
@@ -46,13 +46,15 @@ function main(){
 
 function install_nginx(){
     
-    tool_list=("nginx" "nginx-extras")
+    tool_list=("nginx" "nginx-extras" "TEST")
     for tool in ${tool_list[@]}; do
         if ! dpkg -s $tool &>$NULL; then
             echo "Installing $tool..."
             touch $LOGFILE
             if ! sudo apt-get install $tool -y >> $LOGFILE 2>&1; then
-            echo "Failed to install $tool"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
+            echo -e "Failed to install package named: $tool\
+            \nExisting Script..."
             return 1
             fi
 
