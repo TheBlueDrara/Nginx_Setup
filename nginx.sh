@@ -8,12 +8,12 @@ set -o nounset
 set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
-SITES_AVAILABLE=/etc/nginx/sites-available
+SITES_AVAILABLE=/etc/nginx/sites-available/
 SITES_ENABLED=/etc/nginx/sites-enabled/
 LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
-source /etc/os-release
-
+. /etc/os-release
+. nginx.template
 
 
 
@@ -28,20 +28,29 @@ else
 fi
 
 
+
+#Writing a new Main function using OPTARG
+
 function main(){
 
-    while true; do
-    read -p "Enter your choice: " OPT
-        case $OPT in
-            a) install_nginx ;;
-            b) configure_vh ;;
-            c) enable_user_dir ;;
-            d) auth ;;
-            e) create_pam ;;
-            *) echo "Existing"; exit 0 ;;
+    while getopts "i:d:" opt; do
+        case $opt in
+            d)
+                domain="$OPTARG"
+                if [[ -z "$domain" ]]; then
+                    echo "Syntax error: Missing Argument -d <domain>"
+                else
+                    configure_vh "$domain"
+                fi
+                ;;
+            i)
+                install_nginx
+                ;;
         esac
     done
-}
+
+
+
 
 
 function install_nginx(){
@@ -68,25 +77,13 @@ function install_nginx(){
 
 function configure_vh(){
 
-    read -rp "Please enter new VH name: " SERVER_NAME
-    sudo touch $SITES_AVAILABLE/$SERVER_NAME
-    sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
-server {
-    listen 80;
-    server_name $SERVER_NAME;
-    root /var/www/$SERVER_NAME;
-
-    index index.html;
-    }
-EOF
-
-    sudo ln -s $SITES_AVAILABLE/$SERVER_NAME $SITES_ENABLED
-    sudo mkdir /var/www/$SERVER_NAME
-    read -rp "Please enter a header name for your webpage: " HEADER_NAME
-    echo "<h1>$HEADER_NAME</h1>" | sudo tee /var/www/$SERVER_NAME/index.html > /dev/null
-    echo "127.0.0.80 $SERVER_NAME" | sudo tee -a /etc/hosts
+    sudo touch $SITES_AVAILABLE/$domain
+    echo "$domain_conf" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
+    sudo mkdir /var/www/$domain
+    echo "127.0.0.130 $domain" | sudo tee -a /etc/hosts
     sudo systemctl restart nginx
-    if curl -I http://$SERVER_NAME; then
+    if curl -I http://$domain; then
         echo "Congrtz!"
     else
         echo "Fail"
