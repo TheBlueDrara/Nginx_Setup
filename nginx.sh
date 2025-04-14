@@ -41,7 +41,7 @@ function main(){
                 if [[ -z "$domain" ]] && [[ -z "$ip" ]]; then
                     echo "Syntax error: Missing Argument -d <IP_address> <domain>"
                 else
-                    configure_vh "$domain"
+                    configure_vh "$ip" "$domain"
                 fi
                 ;;
             i)
@@ -99,7 +99,7 @@ function install_nginx(){
 
 
 function configure_vh(){
-
+    
     sudo touch $SITES_AVAILABLE/$domain
     eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
@@ -139,22 +139,12 @@ function auth(){
         echo -e "Failed to install apache2-utils\
         \nExisting Script..."
         return 1
-    else
-        read -rp "Please enter a username: " username
-        sudo htpasswd -c /etc/nginx/.htpasswd $username
-
-        eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
-        sudo systemctl restart nginx
-        curl -u $username:password -I http://$domain/secure
-        if [ $? -eq 0 ]; then
-            echo "Username and Password created successfully!"
-	    return 0
-        else
-            echo "Something Went Wrong..."
-	    return 1
-        fi
-     fi
-
+    fi
+    read -rp "Please enter a username: " username
+    sudo htpasswd -c /etc/nginx/.htpasswd $username
+    eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+    sudo systemctl restart nginx
+    curl -u $username:password -I http://$domain/secure
 }
 
 
@@ -165,15 +155,14 @@ function create_pam(){
 	echo -e "Failed to install PAM\
 	\nExisting Script..."
 	return 1
-    else
-    	eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
-    	echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
-    	sudo usermod -aG shadow www-data
-    	sudo mkdir /var/www/html/auth-pam
-    	echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
-    	sudo systemctl restart nginx
-    	return 0
-    	fi
+    fi
+    eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+    echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
+    sudo usermod -aG shadow www-data
+    sudo mkdir /var/www/html/auth-pam
+    echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
+    sudo systemctl restart nginx
+    return 0
 }
 
 
