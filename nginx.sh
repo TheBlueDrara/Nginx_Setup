@@ -169,7 +169,7 @@ function create_pam(){
     echo -e "======================================================\
     \nPlease chose your desired option\
     \n install nginx: '-i'\
-    \n Configure new VH: '-d <domain_name>'\
+    \n Configure new VH: '-d <ip address of the domain> <domain_name>'\
     \n Create a public html folder: '-u <domain_name>\
     \n Create an authentication using htpasswd: '-a <domain_name>\
     \n Create an authentication using PAM: '-p <domain_name>\
