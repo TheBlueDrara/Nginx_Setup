@@ -104,7 +104,7 @@ function install_nginx(){
 function configure_vh(){
 
     sudo touch $SITES_AVAILABLE/$domain
-    echo "$domain_conf" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+    eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
     sudo mkdir /var/www/$domain
     echo "127.0.0.130 $domain" | sudo tee -a /etc/hosts > $NULL
@@ -126,7 +126,7 @@ function enable_user_dir(){
         echo "Dir already exists"
     fi    
     echo "Hello from $USER!" | sudo tee /home/$USER/public_html/index.html
-    echo "$user_dir_conf" | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME > $NULL
+    eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME > $NULL
     sudo systemctl restart nginx
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
@@ -145,7 +145,7 @@ function auth(){
         read -rp "Please enter a username: " username
         sudo htpasswd -c /etc/nginx/.htpasswd $username
 
-        echo "$auth_conf" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+        eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
         sudo systemctl restart nginx
         curl -u $username:password -I http://$domain/secure
         if [ $? -eq 0 ]; then
@@ -169,7 +169,7 @@ function create_pam(){
         echo "Failed to install PAM"
         return 1
     fi
-    echo "$pam_conf" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+    eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
     echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
     sudo usermod -aG shadow www-data
     sudo mkdir /var/www/html/auth-pam
