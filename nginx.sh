@@ -119,7 +119,7 @@ function enable_user_dir(){
 
     sudo mkdir /home/$USER/public_html
     echo "Hello from $USER!" | sudo tee /home/$USER/public_html/index.html
-    eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME > $NULL
+    eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo systemctl restart nginx
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
@@ -134,7 +134,12 @@ function enable_user_dir(){
 
 function auth(){
     
-    if  sudo apt-get install apache2-utils -y; then
+    if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
+	echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
+        echo -e "Failed to install apache2-utils\
+        \nExisting Script..."
+        return 1
+    else
         read -rp "Please enter a username: " username
         sudo htpasswd -c /etc/nginx/.htpasswd $username
 
@@ -155,19 +160,20 @@ function auth(){
 
 function create_pam(){
 
-    if sudo apt-get install libpam0g-dev libpam-modules -y; then
-        echo "Pam Installed correctly!"
-	return 0
+    if ! sudo apt-get install libpam0g-dev libpam-modules -y >> $LOGFILE 2>&1; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install pam moduels" >> "$LOGFILE"
+	echo -e "Failed to install PAM\
+	\nExisting Script..."
+	return 1
     else
-        echo "Failed to install PAM"
-        return 1
-    fi
-    eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
-    echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
-    sudo usermod -aG shadow www-data
-    sudo mkdir /var/www/html/auth-pam
-    echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
-    sudo systemctl restart nginx
+    	eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+    	echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
+    	sudo usermod -aG shadow www-data
+    	sudo mkdir /var/www/html/auth-pam
+    	echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
+    	sudo systemctl restart nginx
+    	return 0
+    	fi
 }
 
 
