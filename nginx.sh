@@ -33,7 +33,7 @@ fi
 
 function main(){
 
-    while getopts "i:d:" opt; do
+    while getopts "i d:u:" opt; do
         case $opt in
             d)
                 domain="$OPTARG"
@@ -46,6 +46,32 @@ function main(){
             i)
                 install_nginx
                 ;;
+	    u)
+		domain="$OPTARG"
+		if [[ -z "$domain" ]]; then
+		    echo "Syntax error: Missing Argument -u <domain>"
+                else
+                    enable_user_dir "$domain"
+		fi
+		;;
+	    a)
+                domain="$OPTARG"
+                if [[ -z "$domain" ]]; then
+                    echo "Syntax error: Missing Argument -a <domain>"
+                else
+                    auth "$domain"
+                fi
+                ;;
+	    p)
+		domain="$OPTARG"
+                if [[ -z "$domain" ]]; then
+                    echo "Syntax error: Missing Argument -p <domain>"
+                else
+                    create_pam "$domain"
+                fi
+                ;;
+
+
         esac
     done
 
@@ -81,14 +107,14 @@ function configure_vh(){
     echo "$domain_conf" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
     sudo mkdir /var/www/$domain
-    echo "127.0.0.130 $domain" | sudo tee -a /etc/hosts
+    echo "127.0.0.130 $domain" | sudo tee -a /etc/hosts > $NULL
     sudo systemctl restart nginx
     if curl -I http://$domain; then
-        echo "Congrtz!"
+        return 0
     else
-        echo "Fail"
+        echo "Something went wrong"
+	return 1
     fi
-    main
 }
 
 
@@ -100,114 +126,66 @@ function enable_user_dir(){
         echo "Dir already exists"
     fi    
     echo "Hello from $USER!" | sudo tee /home/$USER/public_html/index.html
-    sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
-server {
-    listen 80;
-    server_name $SERVER_NAME;
-    root /var/www/$SERVER_NAME;
-
-    index index.html;
-
-    location ~ ^/~(.+?)(/.*)?$ {
-        alias /home/\$1/public_html\$2;
-        index index.html;
-    }
-}
-EOF
+    echo "$user_dir_conf" | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME > $NULL
     sudo systemctl restart nginx
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
-        if curl -I http://$SERVER_NAME/~$USER; then
-            echo "Congrtz!"
+        if curl -I http://$domain/~$USER; then
+            return 0
+	else
+	    echo "Something Went Wrong"
+	    return 1
         fi
-    main
 }
 
 
 function auth(){
     
-    if sudo apt-get update && sudo apt-get install apache2-utils -y; then
-        read -rp "Please enter a username: " USERNAME
-        sudo htpasswd -c /etc/nginx/.htpasswd $USERNAME
+    if  sudo apt-get install apache2-utils -y; then
+        read -rp "Please enter a username: " username
+        sudo htpasswd -c /etc/nginx/.htpasswd $username
 
-        sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null << EOF
-server {
-    listen 80;
-    server_name $SERVER_NAME;
-    root /var/www/$SERVER_NAME;
-
-    index index.html;
-
-location /secure {
-    auth_basic "Restricted Area";
-    auth_basic_user_file /etc/nginx/.htpasswd; 
-    }
-}
-EOF
+        echo "$auth_conf" | sudo tee $SITES_AVAILABLE/$domain > $NULL
         sudo systemctl restart nginx
-        curl -u $USERNAME:password -I http://$SERVER_NAME/secure
+        curl -u $username:password -I http://$domain/secure
         if [ $? -eq 0 ]; then
             echo "Username and Password created successfully!"
+	    return 0
         else
-            echo "Failed"       
+            echo "Something Went Wrong..."
+	    return 1
         fi
      fi
-    main
 
 }
 
 
 function create_pam(){
 
-    if sudo apt-get update && sudo apt-get install libpam0g-dev libpam-modules; then
+    if sudo apt-get install libpam0g-dev libpam-modules -y; then
         echo "Pam Installed correctly!"
+	return 0
     else
-        echo "Failed"
+        echo "Failed to install PAM"
         return 1
     fi
-
-    sudo tee $SITES_AVAILABLE/$SERVER_NAME >/dev/null <<EOF
-server {
-    listen 80;
-    server_name $SERVER_NAME;
-    root /var/www/$SERVER_NAME;
-
-    index index.html;
-
-    location /auth-pam {
-        auth_pam "PAM Authentication";
-        auth_pam_service_name "nginx";
-    }
-}
-EOF
+    echo "$pam_conf" | sudo tee $SITES_AVAILABLE/$domain > $NULL
     echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
     sudo usermod -aG shadow www-data
     sudo mkdir /var/www/html/auth-pam
-    sudo tee /var/www/html/auth-pam/index.html >/dev/null << EOF
-<html>
-    <body>
-        <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
-            Test Page for PAM Auth
-        </div>
-    </body>
-</html>
-EOF
+    echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
     sudo systemctl restart nginx
-    main
 }
-
-
 
 
 
     echo -e "======================================================\
     \nPlease chose your desired option\
-    \na) install nginx\
-    \nb) Configure new VH\
-    \nc) Create a public html folder\
-    \nd) Create an authentication using htpasswd\
-    \ne) Create an authentication using PAM\
-    \n*) Exit\
+    \n install nginx: '-i'\
+    \n Configure new VH: '-d <domain_name>'\
+    \n Create a public html folder: '-u <domain_name>\
+    \n Create an authentication using htpasswd: '-a <domain_name>\
+    \n Create an authentication using PAM: '-p <domain_name>\
     \n======================================================"
 
 main $@
