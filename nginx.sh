@@ -16,10 +16,6 @@ NULL=/dev/null
 . nginx.template
 
 
-
-
-
-
 if [[ $ID_LIKE == "debian" ]]; then
 	echo "Running on Debian-family distro. Executing main code..."
 else
@@ -28,8 +24,10 @@ else
 fi
 
 
+touch $LOGFILE #Creating a log file
 
-#Writing a new Main function using OPTARG
+
+#Writing a new Main function
 
 function main(){
 
@@ -76,16 +74,12 @@ function main(){
     done
 
 
-
-
-
 function install_nginx(){
     
     tool_list=("nginx" "nginx-extras")
     for tool in ${tool_list[@]}; do
         if ! dpkg -s $tool &>$NULL; then
             echo "Installing $tool..."
-            touch $LOGFILE
             if ! sudo apt-get install $tool -y >> $LOGFILE 2>&1; then
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
             echo -e "Failed to install package named: $tool\
@@ -176,7 +170,6 @@ function create_pam(){
     echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
     sudo systemctl restart nginx
 }
-
 
 
     echo -e "======================================================\
