@@ -27,16 +27,19 @@ fi
 touch $LOGFILE #Creating a log file
 
 
+[[ -f nginx.template ]] || echo "Missing nginx.template file"; exit 1
+
+
 #Writing a new Main function
 
 function main(){
 
-    while getopts "i d:u:" opt; do
+    while getopts "id:u:a:p:" opt; do
         case $opt in
             d)
-                domain="$OPTARG"
-                if [[ -z "$domain" ]]; then
-                    echo "Syntax error: Missing Argument -d <domain>"
+                read -r ip domain <<< "$OPTARG"
+                if [[ -z "$domain" ]] && [[ -z "$ip" ]]; then
+                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
                 else
                     configure_vh "$domain"
                 fi
@@ -101,7 +104,7 @@ function configure_vh(){
     eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
     sudo mkdir /var/www/$domain
-    echo "127.0.0.130 $domain" | sudo tee -a /etc/hosts > $NULL
+    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
     sudo systemctl restart nginx
     if curl -I http://$domain; then
         return 0
@@ -114,11 +117,7 @@ function configure_vh(){
 
 function enable_user_dir(){
 
-    if sudo mkdir /home/$USER/public_html; then
-        echo "Created a public_html dir!"
-    else
-        echo "Dir already exists"
-    fi    
+    sudo mkdir /home/$USER/public_html
     echo "Hello from $USER!" | sudo tee /home/$USER/public_html/index.html
     eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$SERVER_NAME > $NULL
     sudo systemctl restart nginx
@@ -181,7 +180,7 @@ function create_pam(){
     \n Create an authentication using PAM: '-p <domain_name>\
     \n======================================================"
 
-main $@
+main "$@"
 
 
 
