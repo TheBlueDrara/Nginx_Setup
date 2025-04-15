@@ -33,6 +33,8 @@ touch $LOGFILE #Creating a log file
 #Writing a new Main function
 
 function main(){
+    domain=""
+    ip=""
 
     while getopts "id:u:a:p:" opt; do
         case $opt in
