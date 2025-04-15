@@ -47,29 +47,29 @@ function main(){
             i)
                 install_nginx
                 ;;
-	    u)
-		domain="$OPTARG"
-		if [[ -z "$domain" ]]; then
-		    echo "Syntax error: Missing Argument -u <domain>"
-                else
-                    enable_user_dir "$domain"
-		fi
-		;;
-	    a)
-                domain="$OPTARG"
-                if [[ -z "$domain" ]]; then
-                    echo "Syntax error: Missing Argument -a <domain>"
-                else
-                    auth "$domain"
-                fi
+	        u)
+		    domain="$OPTARG"
+		    if [[ -z "$domain" ]]; then
+		        echo "Syntax error: Missing Argument -u <domain>"
+            else
+                enable_user_dir "$domain"
+		    fi
+		        ;;
+	        a)
+            domain="$OPTARG"
+            if [[ -z "$domain" ]]; then
+                echo "Syntax error: Missing Argument -a <domain>"
+            else
+                auth "$domain"
+            fi
                 ;;
-	    p)
-		domain="$OPTARG"
-                if [[ -z "$domain" ]]; then
-                    echo "Syntax error: Missing Argument -p <domain>"
-                else
-                    create_pam "$domain"
-                fi
+	        p)
+		    domain="$OPTARG"
+            if [[ -z "$domain" ]]; then
+                echo "Syntax error: Missing Argument -p <domain>"
+            else
+                create_pam "$domain"
+            fi
                 ;;
 
 
