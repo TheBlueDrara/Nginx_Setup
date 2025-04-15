@@ -14,7 +14,8 @@ LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
 . /etc/os-release
 . nginx.template
-
+domain=""
+ip=""
 
 if [[ $ID_LIKE == "debian" ]]; then
 	echo "Running on Debian-family distro. Executing main code..."
@@ -33,8 +34,6 @@ touch $LOGFILE #Creating a log file
 #Writing a new Main function
 
 function main(){
-    domain=""
-    ip=""
 
     while getopts "id:u:a:p:" opt; do
         case $opt in
