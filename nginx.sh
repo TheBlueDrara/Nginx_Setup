@@ -17,18 +17,29 @@ NULL=/dev/null
 domain=""
 ip=""
 
-if [[ $ID_LIKE == "debian" ]]; then
-	echo "Running on Debian-family distro. Executing main code..."
-else
-	echo "This script is designed to run only on Debian-family distro only!"
-	exit 1
-fi
 
 
-touch $LOGFILE #Creating a log file
+    if [[ $ID_LIKE == "debian" ]]; then
+	    echo "Running on Debian-family distro. Executing main code..."
+    else
+	    echo "This script is designed to run only on Debian-family distro only!"
+	    exit 1
+    fi
 
 
-[[ -f nginx.template ]] || echo "Missing nginx.template file"; exit 1
+    touch $LOGFILE #Creating a log file
+
+
+    [[ -f nginx.template ]] || { echo "Missing nginx.template file"; exit 1 }
+
+    echo -e "======================================================\
+    \nPlease chose your desired option\
+    \n install nginx: '-i'\
+    \n Configure new VH: '-d <ip address of the domain> <domain_name>'\
+    \n Create a public html folder: '-u <domain_name>\
+    \n Create an authentication using htpasswd: '-a <domain_name>\
+    \n Create an authentication using PAM: '-p <domain_name>\
+    \n======================================================"
 
 
 #Writing a new Main function

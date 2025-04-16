@@ -1,4 +1,4 @@
-domain_conf="
+domain_conf='
 server {
     listen 80;
     server_name $domain;
@@ -6,10 +6,10 @@ server {
 
     index index.html;
     }
-"
+'
 
 
-user_dir_conf="
+user_dir_conf='
 server {
     listen 80;
     server_name $domain;
@@ -22,10 +22,10 @@ server {
         index index.html;
     }
 }
-"
+'
 
 
-auth_conf="
+auth_conf='
 server {
     listen 80;
     server_name $domain;
@@ -38,9 +38,9 @@ location /secure {
     auth_basic_user_file /etc/nginx/.htpasswd;
     }
 }
-"
+'
 
-pam_conf="
+pam_conf='
 server {
     listen 80;
     server_name $domain;
@@ -53,9 +53,9 @@ server {
         auth_pam_service_name "nginx";
     }
 }
-"
+'
 
-html_template="
+html_template='
 <html>
     <body>
         <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
@@ -63,7 +63,7 @@ html_template="
         </div>
     </body>
 </html>
-"
+'
 
 
 
