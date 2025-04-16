@@ -28,9 +28,12 @@ function main(){
 	    exit 1
     fi
 
-    touch $LOGFILE
+    if [[ ! -f nginx.template ]]; then
+        echo "Missing nginx.template file"
+        exit 1
+    fi
 
-    [[ -f nginx.template ]] || { echo "Missing nginx.template file"; exit 1 }
+    touch $LOGFILE
 
     echo -e "======================================================\
     \nPlease chose your desired option\
