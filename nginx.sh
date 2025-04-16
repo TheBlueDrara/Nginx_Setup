@@ -34,9 +34,15 @@ function main(){
     fi
 
     touch $LOGFILE
-
+# REMOVE EXIT, no need
     echo -e "======================================================\
-    \nPlease chose your desired option\
+    \n \
+    \n Hello Dear User!\
+    \n Please take in mind in the current version of the script, each option creates it own webserver + the different options!\
+    \n If you want to choose another option, it will create a new webserver with a different local ip address.\
+    \n \
+    \n \
+    \n Please chose your desired option\
     \n install nginx: '-i'\
     \n Configure new VH: '-d <ip address of the domain> <domain_name>'\
     \n Configure VH and Create a public html folder for current user: '-u <IP address of the domain> <domain_name>\
@@ -132,7 +138,7 @@ function configure_vh(){
 
 
 function enable_user_dir(){
-
+# ADD a check that if the user inputs an ip or domain that already exit, out put the info to the user and try again
     sudo mkdir /home/$USER/public_html
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
@@ -151,7 +157,9 @@ function enable_user_dir(){
 
 
 function auth(){
-    
+   #ADD here the same check if ip or domain name exit
+   #ADD config of hosts - as there is no DNS server
+   #ADD soft link from sites available to enabled
     if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
 	    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
         echo -e "Failed to install apache2-utils\
