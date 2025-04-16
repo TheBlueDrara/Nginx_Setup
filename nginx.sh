@@ -87,7 +87,7 @@ function main(){
 
         esac
     done
-
+}
 
 function install_nginx(){
     
@@ -176,16 +176,6 @@ function create_pam(){
     sudo systemctl restart nginx
     return 0
 }
-
-
-    echo -e "======================================================\
-    \nPlease chose your desired option\
-    \n install nginx: '-i'\
-    \n Configure new VH: '-d <ip address of the domain> <domain_name>'\
-    \n Create a public html folder: '-u <domain_name>\
-    \n Create an authentication using htpasswd: '-a <domain_name>\
-    \n Create an authentication using PAM: '-p <domain_name>\
-    \n======================================================"
 
 main "$@"
 
