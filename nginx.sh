@@ -8,7 +8,7 @@ set -o nounset
 set -o errexit
 set -o pipefail
 ################################## End Safe Header ############################
-SITES_AVAILABLE=/etc/nginx/sites-available/
+SITES_AVAILABLE=/etc/nginx/sites-available
 SITES_ENABLED=/etc/nginx/sites-enabled/
 LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
@@ -47,8 +47,9 @@ function main(){
     while getopts "id:u:a:p:" opt; do
         case $opt in
             d)
-                read -r ip domain <<< "$OPTARG"
-                if [[ -z "$domain" ]] && [[ -z "$ip" ]]; then
+                ip=$(echo "$OPTARG" | awk '{print $1}')
+                domain=$(echo "$OPTARG" | awk '{print $2}')
+                if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
                     echo "Syntax error: Missing Argument -d <IP_address> <domain>"
                 else
                     configure_vh "$ip" "$domain"
@@ -115,6 +116,7 @@ function configure_vh(){
     eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
     sudo mkdir /var/www/$domain
+    echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
     echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
     sudo systemctl restart nginx
     if curl -I http://$domain; then
