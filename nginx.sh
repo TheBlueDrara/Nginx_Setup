@@ -42,6 +42,7 @@ function main(){
     \n Configure VH and Create a public html folder for current user: '-u <IP address of the domain> <domain_name>\
     \n Create an authentication using htpasswd: '-a <domain_name>\
     \n Create an authentication using PAM: '-p <domain_name>\
+    \n Exit: *
     \n======================================================"
 
     while getopts "id:u:a:p:" opt; do
@@ -83,7 +84,8 @@ function main(){
                     create_pam "$domain"
                 fi
                 ;;
-
+            *)
+                exit 1
 
         esac
     done
