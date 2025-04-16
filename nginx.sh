@@ -13,7 +13,6 @@ SITES_ENABLED=/etc/nginx/sites-enabled/
 LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
 . /etc/os-release
-. nginx.template
 domain=""
 ip=""
 
@@ -26,11 +25,11 @@ ip=""
 	    exit 1
     fi
 
-
     touch $LOGFILE #Creating a log file
 
-
     [[ -f nginx.template ]] || { echo "Missing nginx.template file"; exit 1 }
+    . nginx.template
+
 
     echo -e "======================================================\
     \nPlease chose your desired option\
@@ -41,53 +40,6 @@ ip=""
     \n Create an authentication using PAM: '-p <domain_name>\
     \n======================================================"
 
-
-#Writing a new Main function
-
-function main(){
-
-    while getopts "id:u:a:p:" opt; do
-        case $opt in
-            d)
-                read -r ip domain <<< "$OPTARG"
-                if [[ -z "$domain" ]] && [[ -z "$ip" ]]; then
-                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
-                else
-                    configure_vh "$ip" "$domain"
-                fi
-                ;;
-            i)
-                install_nginx
-                ;;
-	        u)
-		    domain="$OPTARG"
-		    if [[ -z "$domain" ]]; then
-		        echo "Syntax error: Missing Argument -u <domain>"
-            else
-                enable_user_dir "$domain"
-		    fi
-		        ;;
-	        a)
-            domain="$OPTARG"
-            if [[ -z "$domain" ]]; then
-                echo "Syntax error: Missing Argument -a <domain>"
-            else
-                auth "$domain"
-            fi
-                ;;
-	        p)
-		    domain="$OPTARG"
-            if [[ -z "$domain" ]]; then
-                echo "Syntax error: Missing Argument -p <domain>"
-            else
-                create_pam "$domain"
-            fi
-                ;;
-
-
-        esac
-    done
-}
 
 function install_nginx(){
     
@@ -137,9 +89,9 @@ function enable_user_dir(){
     sudo chmod 755 /home/$USER/public_html
         if curl -I http://$domain/~$USER; then
             return 0
-	else
-	    echo "Something Went Wrong"
-	    return 1
+	    else
+	        echo "Something Went Wrong"
+	        return 1
         fi
 }
 
@@ -147,7 +99,7 @@ function enable_user_dir(){
 function auth(){
     
     if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
-	echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
+	    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
         echo -e "Failed to install apache2-utils\
         \nExisting Script..."
         return 1
@@ -164,9 +116,9 @@ function create_pam(){
 
     if ! sudo apt-get install libpam0g-dev libpam-modules -y >> $LOGFILE 2>&1; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install pam moduels" >> "$LOGFILE"
-	echo -e "Failed to install PAM\
-	\nExisting Script..."
-	return 1
+	    echo -e "Failed to install PAM\
+	    \nExisting Script..."
+	    return 1
     fi
     eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
     echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
@@ -175,6 +127,53 @@ function create_pam(){
     echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
     sudo systemctl restart nginx
     return 0
+}
+
+
+
+function main(){
+
+    while getopts "id:u:a:p:" opt; do
+        case $opt in
+            d)
+                read -r ip domain <<< "$OPTARG"
+                if [[ -z "$domain" ]] && [[ -z "$ip" ]]; then
+                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
+                else
+                    configure_vh "$ip" "$domain"
+                fi
+                ;;
+            i)
+                install_nginx
+                ;;
+            u)
+            domain="$OPTARG"
+            if [[ -z "$domain" ]]; then
+                echo "Syntax error: Missing Argument -u <domain>"
+            else
+                enable_user_dir "$domain"
+            fi
+                ;;
+            a)
+            domain="$OPTARG"
+            if [[ -z "$domain" ]]; then
+                echo "Syntax error: Missing Argument -a <domain>"
+            else
+                auth "$domain"
+            fi
+                ;;
+            p)
+            domain="$OPTARG"
+            if [[ -z "$domain" ]]; then
+                echo "Syntax error: Missing Argument -p <domain>"
+            else
+                create_pam "$domain"
+            fi
+                ;;
+
+
+        esac
+    done
 }
 
 main "$@"
