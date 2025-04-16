@@ -39,7 +39,7 @@ function main(){
     \nPlease chose your desired option\
     \n install nginx: '-i'\
     \n Configure new VH: '-d <ip address of the domain> <domain_name>'\
-    \n Create a public html folder: '-u <domain_name>\
+    \n Configure VH and Create a public html folder for current user: '-u <IP address of the domain> <domain_name>\
     \n Create an authentication using htpasswd: '-a <domain_name>\
     \n Create an authentication using PAM: '-p <domain_name>\
     \n======================================================"
@@ -59,28 +59,29 @@ function main(){
                 install_nginx
                 ;;
             u)
-            domain="$OPTARG"
-            if [[ -z "$domain" ]]; then
-                echo "Syntax error: Missing Argument -u <domain>"
-            else
-                enable_user_dir "$domain"
-            fi
+                ip=$(echo "$OPTARG" | awk '{print $1}')
+                domain=$(echo "$OPTARG" | awk '{print $2}')
+                if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
+                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
+                else
+                    enable_user_dir "$ip" "$domain"
+                fi
                 ;;
             a)
-            domain="$OPTARG"
-            if [[ -z "$domain" ]]; then
-                echo "Syntax error: Missing Argument -a <domain>"
-            else
-                auth "$domain"
-            fi
+                domain="$OPTARG"
+                if [[ -z "$domain" ]]; then
+                    echo "Syntax error: Missing Argument -a <domain>"
+                else
+                    auth "$domain"
+                fi
                 ;;
             p)
-            domain="$OPTARG"
-            if [[ -z "$domain" ]]; then
-                echo "Syntax error: Missing Argument -p <domain>"
-            else
-                create_pam "$domain"
-            fi
+                domain="$OPTARG"
+                if [[ -z "$domain" ]]; then
+                    echo "Syntax error: Missing Argument -p <domain>"
+                else
+                    create_pam "$domain"
+                fi
                 ;;
 
 
@@ -111,7 +112,7 @@ function install_nginx(){
 
 
 function configure_vh(){
-    
+
     sudo touch $SITES_AVAILABLE/$domain
     eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
@@ -131,11 +132,13 @@ function configure_vh(){
 function enable_user_dir(){
 
     sudo mkdir /home/$USER/public_html
-    echo "Hello from $USER!" | sudo tee /home/$USER/public_html/index.html
-    eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
-    sudo systemctl restart nginx
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
+    echo "<h1>Hello from $USER!</h1>" | sudo tee /home/$USER/public_html/index.html > $NULL
+    eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
+    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
+    sudo systemctl restart nginx
         if curl -I http://$domain/~$USER; then
             return 0
 	    else
