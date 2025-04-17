@@ -17,7 +17,7 @@ NULL=/dev/null
 domain=""
 ip=""
 
-
+# IDEAS TO ADD : create a function that will do the repetetive work like touching files, soft links, file creation, every function will call this function with the parameters and then add the required config. 
 
 function main(){
 
@@ -44,9 +44,9 @@ function main(){
     \n \
     \n Please chose your desired option\
     \n install nginx: '-i'\
-    \n Configure new VH: '-d <ip address of the domain> <domain_name>'\
+    \n Configure new VH: '-d <IP address of the domain> <domain_name>'\
     \n Configure VH and Create a public html folder for current user: '-u <IP address of the domain> <domain_name>\
-    \n Create an authentication using htpasswd: '-a <domain_name>\
+    \n Create an authentication using htpasswd: '-a '<IP address of the domain> <domain_name>'\
     \n Create an authentication using PAM: '-p <domain_name>\
     \n Exit: *
     \n======================================================"
@@ -75,11 +75,12 @@ function main(){
                 fi
                 ;;
             a)
-                domain="$OPTARG"
-                if [[ -z "$domain" ]]; then
-                    echo "Syntax error: Missing Argument -a <domain>"
+                ip=$(echo "$OPTARG" | awk '{print $1}')
+                domain=$(echo "$OPTARG" | awk '{print $2}')
+                if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
+                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
                 else
-                    auth "$domain"
+                    auth "$ip" "$domain"
                 fi
                 ;;
             p)
@@ -143,6 +144,7 @@ function enable_user_dir(){
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
     echo "<h1>Hello from $USER!</h1>" | sudo tee /home/$USER/public_html/index.html > $NULL
+    sudo touch $SITES_AVAILABLE/$domain
     eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
     echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
@@ -158,8 +160,6 @@ function enable_user_dir(){
 
 function auth(){
    #ADD here the same check if ip or domain name exit
-   #ADD config of hosts - as there is no DNS server
-   #ADD soft link from sites available to enabled
     if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
 	    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
         echo -e "Failed to install apache2-utils\
@@ -168,7 +168,12 @@ function auth(){
     fi
     read -rp "Please enter a username: " username
     sudo htpasswd -c /etc/nginx/.htpasswd $username
+    sudo mkdir /var/www/$domain
+    sudo touch $SITES_AVAILABLE/$domain ; sudo touch /var/www/$domain/index.html > $NULL
     eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
+    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
+    echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
     sudo systemctl restart nginx
     curl -u $username:password -I http://$domain/secure
 }
