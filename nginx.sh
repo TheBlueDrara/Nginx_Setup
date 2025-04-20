@@ -3,7 +3,7 @@
 #Developed by Alex Umansky aka TheBlueDrara
 #Porpuse a tool to install nginx and config it 
 #Date 1.3.2025
-#Version 0.0.1
+#Version 3.0.0
 set -o nounset
 set -o errexit
 set -o pipefail
@@ -13,6 +13,7 @@ SITES_ENABLED=/etc/nginx/sites-enabled/
 LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
 TOOL_LIST=("nginx" "nginx-extras")
+ENABLE_SSL=1
 . /etc/os-release
 . nginx.template
 
@@ -45,20 +46,22 @@ function main(){
     echo -e "======================================================\
     \n \
     \n Hello Dear User!\
-    \n Please take in mind in the current version of the script, each option creates a stand alone web server\
-    \n If you want to choose another option, it will create a new webserver with a different local ip address.\
+    \n In the current state, you can choose to create an http or https web server\
+    \n And add different options like authentication and user public directories\
     \n \
+    \n Please chose your desired option in the following syntax:\
+    \n <-d> '<IP_address> <WebServer Name>' #This is Requird!\
+    \n -u <public_directory_name> \
+    \n -a \
     \n \
-    \n Please chose your desired option in the following syntax: <-x> '<IP_address> <WebServer Name>'\
-    \n \
-    \n Configure a basic http web server: -d \
+    \n Configure a basic web server: -d \
     \n Configure a http web server with user public_html directory: -u \
     \n Create a http web server with authentication using htpasswd: -a \
     \n Create a http web server with authentication using PAM: -p \
     \n \
     \n======================================================"
 
-    while getopts "d:u:a:p:" opt; do
+    while getopts "d:u:a:p:s" opt; do
         case $opt in
             d)
                 ip=$(echo "$OPTARG" | awk '{print $1}')
@@ -70,22 +73,11 @@ function main(){
                 fi
                 ;;
             u)
-                ip=$(echo "$OPTARG" | awk '{print $1}')
-                domain=$(echo "$OPTARG" | awk '{print $2}')
-                if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
-                    echo "Syntax error: Missing Argument -d '<IP_address> <domain>'"
-                else
-                    enable_user_dir "$ip" "$domain"
-                fi
+                    enable_user_dir
                 ;;
             a)
-                ip=$(echo "$OPTARG" | awk '{print $1}')
-                domain=$(echo "$OPTARG" | awk '{print $2}')
-                if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
-                    echo "Syntax error: Missing Argument -d '<IP_address> <domain>'"
-                else
-                    auth "$ip" "$domain"
-                fi
+                    public_dir=$OPTARG
+                    auth "$public_dir"
                 ;;
             p)
                 ip=$(echo "$OPTARG" | awk '{print $1}')
@@ -96,8 +88,15 @@ function main(){
                     create_pam "$ip" "$domain"
                 fi
                 ;;
+            s)
+                ENABLE_SSL=0
         esac
     done
+
+
+
+    sudo systemctl restart nginx
+    echo } >> $SITES_AVAILABLE/$domain
 }
 
 #install nginx and neccery tools
@@ -118,39 +117,42 @@ function install(){
 
 #create  the config files
 function config_file(){
-
-# ADD a check that if the user inputs an ip or domain that already exit, out put the info to the user and try again
+    local ip=$1
+    local domain=$2
     sudo touch $SITES_AVAILABLE/$domain
     sudo mkdir /var/www/$domain
     echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
     echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
-    sudo systemctl restart nginx
-
 }
 
 #creates just a simple http web server
 function configure_vh(){
+    local ip=$1
+    local domain=$2
+    config_file "$1" "$2"
+    if [[ $ENABLE_SSL -eq 1 ]]; then
+        eval "echo \"$domain_conf_http\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+    else
+        eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+    fi
 
-    config_file "ip" "domain"
-    eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     if curl -I http://$domain; then
         return 0
     else
-        echo "Something went wrong"
+        echo "Something went wrong, please check the config files at /etc/nginx/sites-available/<domain_name>"
 	return 1
     fi
 }
 
 #creates an http web server with users directories
 function enable_user_dir(){
-    sudo mkdir /home/$USER/public_html
+    public_dir=$1
+    sudo mkdir /home/$USER/$public_dir
     sudo chmod +x /home/$USER
-    sudo chmod 755 /home/$USER/public_html
-    config_file "ip" "domain"
-    echo "<h1>Hello from $USER!</h1>" | sudo tee /home/$USER/public_html/index.html > $NULL
+    sudo chmod 755 /home/$USER/$public_dir
+    echo "<h1>Hello from $USER!</h1>" | sudo tee /home/$USER/$public_dir/index.html > $NULL
     eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
-    sudo systemctl restart nginx
         if curl -I http://$domain/~$USER; then
             return 0
 	    else
@@ -168,11 +170,9 @@ function auth(){
         \nExisting Script..."
         return 1
     fi
-    config_file "ip" "domain"
-    read -rp "Please enter a username: " username
+    read -rp "Please enter a username for the authentication: " username
     sudo htpasswd -c /etc/nginx/.htpasswd $username
     eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
-    sudo systemctl restart nginx
     curl -u $username:password -I http://$domain/secure
 }
 
