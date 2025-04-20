@@ -3,7 +3,7 @@
 #Developed by Alex Umansky aka TheBlueDrara
 #Porpuse a tool to install nginx and config it 
 #Date 1.3.2025
-#Version 3.0.1
+#Version 3.0.2
 set -o nounset
 set -o errexit
 set -o pipefail
@@ -15,9 +15,6 @@ NULL=/dev/null
 TOOL_LIST=("nginx" "nginx-extras")
 ENABLE_SSL=1
 PUBLIC_DIR="public_html"
-SSL_CRET=""
-SSL_KEY=""
-
 . /etc/os-release
 . nginx.template
 
@@ -75,13 +72,13 @@ function main(){
     \n    ./nginx.sh -d '127.0.0.10 mysite.local'\
     \n    ./nginx.sh -d '127.0.0.20 secure.site' -a\
     \n    ./nginx.sh -d '127.0.0.30 user.site' -u public_html\
-    \n    ./nginx.sh -d '127.0.0.40 ninja.com' -s '.ssl_cret.pem .ssl_key.pem'
+    \n    ./nginx.sh -d '127.0.0.40 ninja.com' -s
     \n\
     \n======================================================\
     "
 
 
-    while getopts "d:u:a:p:s:" opt; do
+    while getopts "d:u:a:p:s" opt; do
         case $opt in
             d)
                 ip=$(echo "$OPTARG" | awk '{print $1}')
@@ -98,9 +95,6 @@ function main(){
                 #create_pam
                 ;;
             s)
-
-                $SSL_CRET=$(echo "$OPTARG" | awk '{print $1}')
-                $SSL_KEY=$(echo "$OPTRAG" | awk '{print $2}')
                 ENABLE_SSL=0
         esac
     done
@@ -108,7 +102,7 @@ function main(){
     if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
         echo "Syntax error: Missing required argument -d '<IP_address> <Domain_Name>'"
     else
-        configure_vh "$ip" "$domain" "$ENABLE_SSL" "$SSL_CRET" "$SSL_KEY"
+        configure_vh "$ip" "$domain" "$ENABLE_SSL"
     fi
 
     echo } >> $SITES_AVAILABLE/$domain
@@ -117,6 +111,7 @@ function main(){
 
 #install nginx and neccery tools
 function install(){
+
     package=$1
     if ! dpkg -s $package &>$NULL; then
         echo "Installing $package..."
@@ -131,19 +126,17 @@ function install(){
     fi
 }
 
-#creates just a simple http web server
+#Creates a web server via HTTP or HTTPS depending on argument
 function configure_vh(){
+
     local ip=$1
     local domain=$2
     local enable_ssl=$3
-    local ssl_cret=$4
-    local ssl_key=$5
     config_file "$ip" "$domain"
     if [[ $enable_ssl -eq 1 ]]; then
         eval "echo \"$domain_conf_http\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     else
-        check_ssl "$ssl_cret" "$ssl_key"
-        eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+        create_ssl "$domain"
     fi
 
     if curl -I http://$domain; then
@@ -154,8 +147,9 @@ function configure_vh(){
     fi
 }
 
-#create  the config files
+#Creates  the config files
 function config_file(){
+
     local ip=$1
     local domain=$2
     sudo touch $SITES_AVAILABLE/$domain
@@ -165,7 +159,7 @@ function config_file(){
     sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
 }
 
-#creates an http web server with users directories
+#Adds users directories to the web server config
 function enable_user_dir(){
     local domain=$1
     local public_dir=$2
@@ -182,7 +176,7 @@ function enable_user_dir(){
         fi
 }
 
-#creates an http web server with htpasswd authentication
+#Adds htpasswd authentication to the web server config
 function auth(){
 
     local domain=$1
@@ -198,32 +192,21 @@ function auth(){
     curl -u $username:password -I http://$domain/secure
 }
 
+#Creates SSL certificate and adds HTTPS config to the web server
+function create_ssl(){
 
-function check_ssl(){
-local cert_file=$1
-local key_file=$2
-local ssl_dir=$(dirname "$key_file")
-
-if [[ ! -e $cert_file || ! -e $key_file ]]; then
-    read -p "Looks like the cert and key file don't exist, would you like to to create them? [y/n] " user_input
-    if [[ "$user_input" == "y" || "$user_input" == "Y" ]]; then
-        mkdir -p "$ssl_dir"
-        if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file" -out "$cert_file" -days 365 -nodes; then
-            echo "SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file""
-            return 0
-        else
-            echo "There was an error in crearing the key and cert files"
-            return 1
-        fi
-    elif [[ "$user_input" == "n" || "$user_input" == "N" ]]; then
-        return 1
+    local domain=$1
+    local cert_file="/etc/ssl/certs/$domain.crt"
+    local key_file="/etc/ssl/private/$domain.key"
+    local ssl_dir=$(dirname $key_file)
+    mkdir -p "$ssl_dir"
+    if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file" -out "$cert_file" -days 365 -nodes; then
+        echo "SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file""
     else
-        echo "Invalid input [y/n]"
+        echo "There was an error in crearing the key and cert files"
         return 1
     fi
-
-       echo "The cert and key file already exist"
-    fi
+    eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
 }
 
 #creates a http web server with autentication using PAM
@@ -246,6 +229,7 @@ if [[ ! -e $cert_file || ! -e $key_file ]]; then
 
 #Log template 
 function log(){
+
     touch $LOGFILE
     local level="$1"; shift
     local message="$*"
@@ -256,20 +240,5 @@ function log(){
 
 
 main "$@"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

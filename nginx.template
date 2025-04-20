@@ -21,8 +21,8 @@ server {
     root /var/www/$domain;
     index index.html index.htm;
 
-    ssl_certificate /etc/ssl/certs/$cret_path;        
-    ssl_certificate_key /etc/ssl/private/$key_path;  
+    ssl_certificate /etc/ssl/certs/$cert_file;        
+    ssl_certificate_key /etc/ssl/private/$key_file;  
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
