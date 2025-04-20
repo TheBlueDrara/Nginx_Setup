@@ -36,7 +36,7 @@ EOF
 
 user_dir_conf=$(cat << 'EOF'
     location ~ ^/~(.+?)(/.*)?$ {
-        alias /home/\$1/public_html\$2;
+        alias /home/\$1/$public_dir\$2;
         index index.html;
 }
 EOF
