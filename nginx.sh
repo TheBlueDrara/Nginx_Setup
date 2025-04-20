@@ -10,10 +10,12 @@ set -o pipefail
 ################################## End Safe Header ############################
 SITES_AVAILABLE=/etc/nginx/sites-available
 SITES_ENABLED=/etc/nginx/sites-enabled/
-LOGFILE=~/Desktop/script_logs.txt
+LOGFILE=/var/nginx_script_logs
 NULL=/dev/null
 TOOL_LIST=("nginx" "nginx-extras")
 ENABLE_SSL=1
+ENABLE_USER_DIR=1
+ENABLE_AUTH=""
 PUBLIC_DIR="public_html"
 domain="example.com"
 ip=""
@@ -97,24 +99,32 @@ function main(){
                 ;;
             u)
                 PUBLIC_DIR=$OPTARG
-                enable_user_dir "$domain" "$PUBLIC_DIR"
+                ENABLE_USER_DIR=0
                 ;;
             a)
-                auth "$domain"
+                ENABLE_AUTH=0
                 ;;
             p)
                 #create_pam
                 ;;
             s)
-                ENABLE_SSL=0
+                ENABLE_SSL=1
         esac
     done
 
     if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
         echo "Syntax error: Missing required argument -d '<IP_address> <Domain_Name>'"
         return 1
-    else
-        configure_vh "$ip" "$domain" "$ENABLE_SSL"
+    fi
+
+    configure_vh "$ip" "$domain" "$ENABLE_SSL"
+
+    if [[ $ENABLE_USER_DIR -eq 0 ]]; then
+        enable_user_dir "$domain" "$PUBLIC_DIR"
+    fi
+
+    if [[ $ENABLE_AUTH -eq 0 ]]; then
+        auth "$domain"
     fi
 
     restart_nginx
@@ -145,9 +155,9 @@ function configure_vh(){
     local enable_ssl=$3
     config_file "$ip" "$domain"
     if [[ $enable_ssl -eq 1 ]]; then
-        eval "echo \"$domain_conf_http\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
-    else
         create_ssl "$domain"
+    else
+        eval "echo \"$domain_conf_http\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     fi
 
     if curl -I http://$domain; then
@@ -174,12 +184,14 @@ function config_file(){
 function enable_user_dir(){
     local domain=$1
     local public_dir=$2
-    sudo mkdir /home/$USER/$public_dir
-    sudo chmod +x /home/$USER
-    sudo chmod 755 /home/$USER/$public_dir
-    echo "<h1>Hello from $USER!</h1>" | sudo tee /home/$USER/$public_dir/index.html > $NULL
+    local user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    local username="$SUDO_USER"
+    sudo mkdir $user_home/$public_dir
+    sudo chmod +x $user_home
+    sudo chmod 755 $user_home/$public_dir
+    echo "<h1>Hello from $username!</h1>" | sudo tee $user_home/$public_dir/index.html > $NULL
     eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
-        if curl -I http://$domain/~$USER; then
+        if curl -I http://$domain/~$user_home; then
             return 0
 	    else
 	        echo "Something Went Wrong"
@@ -199,7 +211,7 @@ function auth(){
     fi
     read -rp "Please enter a username for the authentication: " username
     sudo htpasswd -c /etc/nginx/.htpasswd $username
-    eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+    eval "echo \"$auth_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     curl -u $username:password -I http://$domain/secure
 }
 
@@ -255,7 +267,7 @@ fi
 #Log template 
 function log(){
 
-    touch $LOGFILE
+    sudo touch $LOGFILE
     local level="$1"; shift
     local message="$*"
     local timestamp
