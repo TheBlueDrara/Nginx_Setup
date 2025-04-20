@@ -65,7 +65,7 @@ function main(){
     \n        → PAM authentication (Pluggable Authentication Modules).\
     \n        → ⚠️ Currently not supported in this version.\
     \n\
-    \n    -s '<Path_to_ssl_cret> <Path_to_ssl_key>'
+    \n    -s
     \n        → Enables HTTPS web server
     \n\
     \n📦 Example Usages:\
@@ -106,7 +106,7 @@ function main(){
     fi
 
     echo } >> $SITES_AVAILABLE/$domain
-    sudo systemctl restart nginx
+    restart_nginx
 }
 
 #install nginx and neccery tools
@@ -226,6 +226,17 @@ function create_ssl(){
 #    echo "$html_template" | sudo tee -a /var/www/html/auth-pam/index.html > $NULL
 #    sudo systemctl restart nginx
 #}
+
+#Checks if the nginx syntax is correct before a restart
+function restart_nginx(){
+
+if sudo nginx -t; then
+    sudo systemctl restart nginx
+else
+    echo "NGINX configuration test failed. Aborting restart..."
+    exit 1
+fi
+}
 
 #Log template 
 function log(){
