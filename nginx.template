@@ -7,7 +7,7 @@ server {
     index index.html;
 '
 
-domain_conf_https=$(cat << EOF
+domain_conf_https='
 server {
     listen 80;
     server_name $domain;
@@ -30,7 +30,7 @@ server {
     location / {
         try_files $uri $uri/ =404;
     }
-EOF)
+'
 
 user_dir_conf='
     location ~ ^/~(.+?)(/.*)?$ {
