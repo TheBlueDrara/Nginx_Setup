@@ -15,29 +15,40 @@ NULL=/dev/null
 TOOL_LIST=("nginx" "nginx-extras")
 ENABLE_SSL=1
 PUBLIC_DIR="public_html"
+domain="example.com"
+ip=""
 . /etc/os-release
 . nginx.template
 
 
 function main(){
-    #check if runing debian distro
-    if [[ $ID_LIKE == "debian" ]]; then
-	    echo "Running on Debian-family distro. Executing main code..."
-    else
-	    echo "This script is designed to run only on Debian-family distro only!"
-	    exit 1
+
+    #Checks if script runs as sudo or root user
+    if [[ $EUID -ne 0 ]]; then
+        echo "Please run this script with sudo or as root user."
+        exit 1
     fi
-    #check if template file present in the directory
+
+    #Check if runing debian distro
+    if [[ $ID_LIKE == "debian" ]]; then
+        echo "Running on Debian-family distro. Executing main code..."
+    else
+        echo "This script is designed to run only on Debian-family distro only!"
+        exit 1
+    fi
+
+    #Check if template file present in the directory
     if [[ ! -f nginx.template ]]; then
         echo "Missing nginx.template file"
         exit 1
     fi
-    #install neccery tools
+
+    #Install neccery tools
     for tool in ${TOOL_LIST[@]}; do
         install "$tool"
     done
     
-    #script menu
+    #Script menu
     echo -e "\
     \n======================================================\
     \n \
@@ -101,11 +112,11 @@ function main(){
 
     if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
         echo "Syntax error: Missing required argument -d '<IP_address> <Domain_Name>'"
+        return 1
     else
         configure_vh "$ip" "$domain" "$ENABLE_SSL"
     fi
 
-    echo } >> $SITES_AVAILABLE/$domain
     restart_nginx
 }
 
@@ -196,14 +207,16 @@ function auth(){
 function create_ssl(){
 
     local domain=$1
-    local cert_file="/etc/ssl/certs/$domain.crt"
-    local key_file="/etc/ssl/private/$domain.key"
+    local cert_file="$domain.crt"
+    local key_file="$domain.key"
+    local cert_file_path="/etc/ssl/certs/$cert_file"
+    local key_file_path="/etc/ssl/private/$key_file"
     local ssl_dir=$(dirname $key_file)
     mkdir -p "$ssl_dir"
-    if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file" -out "$cert_file" -days 365 -nodes; then
+    if sudo openssl req -x509 -newkey rsa:4096 -keyout "$key_file_path" -out "$cert_file_path" -days 365 -nodes; then
         echo "SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file""
     else
-        echo "There was an error in crearing the key and cert files"
+        echo "There was an error in creating the key and cert files"
         return 1
     fi
     eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
@@ -230,6 +243,7 @@ function create_ssl(){
 #Checks if the nginx syntax is correct before a restart
 function restart_nginx(){
 
+echo } >> $SITES_AVAILABLE/$domain
 if sudo nginx -t; then
     sudo systemctl restart nginx
 else
