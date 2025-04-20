@@ -12,12 +12,9 @@ SITES_AVAILABLE=/etc/nginx/sites-available
 SITES_ENABLED=/etc/nginx/sites-enabled/
 LOGFILE=~/Desktop/script_logs.txt
 NULL=/dev/null
+TOOL_LIST=("nginx" "nginx-extras")
 . /etc/os-release
 . nginx.template
-domain=""
-ip=""
-
-# IDEAS TO ADD : create a function that will do the repetetive work like touching files, soft links, file creation, every function will call this function with the parameters and then add the required config. 
 
 function main(){
 
@@ -33,8 +30,20 @@ function main(){
         exit 1
     fi
 
-    touch $LOGFILE
-# REMOVE EXIT, no need
+    for tool in ${TOOL_LIST[@]}; do
+        if ! dpkg -s $tool &>$NULL; then
+            echo "Installing $tool..."
+            if ! sudo apt-get install $tool -y >> $LOGFILE 2>&1; then
+            log ERROR "[install_nginx] failed to install $tool"
+            echo -e "Failed to install package named: $tool\
+            \nExisting Script..."
+            return 1
+            fi
+        else
+            echo "$tool is already installed."
+        fi
+    done
+
     echo -e "======================================================\
     \n \
     \n Hello Dear User!\
@@ -44,11 +53,11 @@ function main(){
     \n \
     \n Please chose your desired option\
     \n install nginx: '-i'\
-    \n Configure new VH: '-d <IP address of the domain> <domain_name>'\
-    \n Configure VH and Create a public html folder for current user: '-u <IP address of the domain> <domain_name>\
-    \n Create an authentication using htpasswd: '-a '<IP address of the domain> <domain_name>'\
-    \n Create an authentication using PAM: '-p <domain_name>\
-    \n Exit: *
+    \n Configure new VH: -d '<IP address of the domain> <domain_name>'\
+    \n Configure VH and Create a public html folder for current user: -u '<IP address of the domain> <domain_name>'\
+    \n Create an authentication using htpasswd: -a '<IP address of the domain> <domain_name>'\
+    \n Create an authentication using PAM: -p '<IP address of the domain> <domain_name>'\
+    \n \
     \n======================================================"
 
     while getopts "id:u:a:p:" opt; do
@@ -57,7 +66,7 @@ function main(){
                 ip=$(echo "$OPTARG" | awk '{print $1}')
                 domain=$(echo "$OPTARG" | awk '{print $2}')
                 if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
-                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
+                    echo "Syntax error: Missing Argument -d '<IP_address> <domain>'"
                 else
                     configure_vh "$ip" "$domain"
                 fi
@@ -69,7 +78,7 @@ function main(){
                 ip=$(echo "$OPTARG" | awk '{print $1}')
                 domain=$(echo "$OPTARG" | awk '{print $2}')
                 if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
-                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
+                    echo "Syntax error: Missing Argument -d '<IP_address> <domain>'"
                 else
                     enable_user_dir "$ip" "$domain"
                 fi
@@ -78,57 +87,42 @@ function main(){
                 ip=$(echo "$OPTARG" | awk '{print $1}')
                 domain=$(echo "$OPTARG" | awk '{print $2}')
                 if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
-                    echo "Syntax error: Missing Argument -d <IP_address> <domain>"
+                    echo "Syntax error: Missing Argument -d '<IP_address> <domain>'"
                 else
                     auth "$ip" "$domain"
                 fi
                 ;;
             p)
-                domain="$OPTARG"
-                if [[ -z "$domain" ]]; then
-                    echo "Syntax error: Missing Argument -p <domain>"
+                ip=$(echo "$OPTARG" | awk '{print $1}')
+                domain=$(echo "$OPTARG" | awk '{print $2}')
+                if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
+                    echo "Syntax error: Missing Argument -p '<IP_address>  <domain>'"
                 else
-                    create_pam "$domain"
+                    create_pam "$ip" "$domain"
                 fi
                 ;;
-            *)
-                exit 1
-
         esac
     done
 }
 
 
-function install_nginx(){
-    
-    tool_list=("nginx" "nginx-extras")
-    for tool in ${tool_list[@]}; do
-        if ! dpkg -s $tool &>$NULL; then
-            echo "Installing $tool..."
-            if ! sudo apt-get install $tool -y >> $LOGFILE 2>&1; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
-            echo -e "Failed to install package named: $tool\
-            \nExisting Script..."
-            return 1
-            fi
+function config_file(){
 
-        else
-            echo "$tool is already installed."
-        fi
-    done
-    return 0
+# ADD a check that if the user inputs an ip or domain that already exit, out put the info to the user and try again
+    sudo touch $SITES_AVAILABLE/$domain
+    sudo mkdir /var/www/$domain
+    echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
+    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
+    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
+    sudo systemctl restart nginx
+
 }
 
 
 function configure_vh(){
 
-    sudo touch $SITES_AVAILABLE/$domain
+    config_file "ip" "domain"
     eval "echo \"$domain_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
-    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
-    sudo mkdir /var/www/$domain
-    echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
-    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
-    sudo systemctl restart nginx
     if curl -I http://$domain; then
         return 0
     else
@@ -139,15 +133,12 @@ function configure_vh(){
 
 
 function enable_user_dir(){
-# ADD a check that if the user inputs an ip or domain that already exit, out put the info to the user and try again
     sudo mkdir /home/$USER/public_html
     sudo chmod +x /home/$USER
     sudo chmod 755 /home/$USER/public_html
+    config_file "ip" "domain"
     echo "<h1>Hello from $USER!</h1>" | sudo tee /home/$USER/public_html/index.html > $NULL
-    sudo touch $SITES_AVAILABLE/$domain
     eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
-    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
-    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
     sudo systemctl restart nginx
         if curl -I http://$domain/~$USER; then
             return 0
@@ -159,21 +150,17 @@ function enable_user_dir(){
 
 
 function auth(){
-   #ADD here the same check if ip or domain name exit
+
     if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
-	    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install $tool" >> "$LOGFILE"
-        echo -e "Failed to install apache2-utils\
+        log ERROR "[install_nginx] failed to install apache2-utils"
+        echo -e "Failed to install package named: apache2-utils\
         \nExisting Script..."
         return 1
     fi
+    config_file "ip" "domain"
     read -rp "Please enter a username: " username
     sudo htpasswd -c /etc/nginx/.htpasswd $username
-    sudo mkdir /var/www/$domain
-    sudo touch $SITES_AVAILABLE/$domain ; sudo touch /var/www/$domain/index.html > $NULL
     eval "echo \"$auth_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
-    echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
-    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
-    echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
     sudo systemctl restart nginx
     curl -u $username:password -I http://$domain/secure
 }
@@ -182,19 +169,30 @@ function auth(){
 function create_pam(){
 
     if ! sudo apt-get install libpam0g-dev libpam-modules -y >> $LOGFILE 2>&1; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed to install pam moduels" >> "$LOGFILE"
+        log ERROR "[install_nginx] failed to install PAM"
 	    echo -e "Failed to install PAM\
 	    \nExisting Script..."
 	    return 1
     fi
+    config_file "ip" "domain"
     eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
     echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
     sudo usermod -aG shadow www-data
     sudo mkdir /var/www/html/auth-pam
-    echo "$html_template" | sudo tee /var/www/html/auth-pam/index.html > $NULL
+    echo "$html_template" | sudo tee -a /var/www/html/auth-pam/index.html > $NULL
     sudo systemctl restart nginx
-    return 0
 }
+
+
+function log(){
+    touch $LOGFILE
+    local level="$1"; shift
+    local message="$*"
+    local timestamp
+    timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+    echo "[$timestamp] [$level] $message" >> $LOGFILE
+}
+
 
 main "$@"
 

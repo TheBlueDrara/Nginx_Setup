@@ -56,7 +56,7 @@ server {
 }
 '
 
-html_template='
+html_template=$(cat << 'EOF'
 <html>
     <body>
         <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
@@ -64,7 +64,7 @@ html_template='
         </div>
     </body>
 </html>
-'
+EOF)
 
 
 
