@@ -16,51 +16,49 @@ TOOL_LIST=("nginx" "nginx-extras")
 . /etc/os-release
 . nginx.template
 
-function main(){
 
+
+
+
+
+
+
+function main(){
+    #check if runing debian distro
     if [[ $ID_LIKE == "debian" ]]; then
 	    echo "Running on Debian-family distro. Executing main code..."
     else
 	    echo "This script is designed to run only on Debian-family distro only!"
 	    exit 1
     fi
-
+    #check if template file present in the directory
     if [[ ! -f nginx.template ]]; then
         echo "Missing nginx.template file"
         exit 1
     fi
-
+    #install neccery tools
     for tool in ${TOOL_LIST[@]}; do
-        if ! dpkg -s $tool &>$NULL; then
-            echo "Installing $tool..."
-            if ! sudo apt-get install $tool -y >> $LOGFILE 2>&1; then
-            log ERROR "[install_nginx] failed to install $tool"
-            echo -e "Failed to install package named: $tool\
-            \nExisting Script..."
-            return 1
-            fi
-        else
-            echo "$tool is already installed."
-        fi
+        install "$tool"
     done
-
+    
+    #menu
     echo -e "======================================================\
     \n \
     \n Hello Dear User!\
-    \n Please take in mind in the current version of the script, each option creates it own webserver + the different options!\
+    \n Please take in mind in the current version of the script, each option creates a stand alone web server\
     \n If you want to choose another option, it will create a new webserver with a different local ip address.\
     \n \
     \n \
-    \n Please chose your desired option\
-    \n install nginx: '-i'\
-    \n Configure new VH: -d '<IP address of the domain> <domain_name>'\
-    \n Configure VH and Create a public html folder for current user: -u '<IP address of the domain> <domain_name>'\
-    \n Create an authentication using htpasswd: -a '<IP address of the domain> <domain_name>'\
-    \n Create an authentication using PAM: -p '<IP address of the domain> <domain_name>'\
+    \n Please chose your desired option in the following syntax: <-x> '<IP_address> <WebServer Name>'\
+    \n \
+    \n Configure a basic http web server: -d \
+    \n Configure a http web server with user public_html directory: -u \
+    \n Create a http web server with authentication using htpasswd: -a \
+    \n Create a http web server with authentication using PAM: -p \
     \n \
     \n======================================================"
 
-    while getopts "id:u:a:p:" opt; do
+    while getopts "d:u:a:p:" opt; do
         case $opt in
             d)
                 ip=$(echo "$OPTARG" | awk '{print $1}')
@@ -70,9 +68,6 @@ function main(){
                 else
                     configure_vh "$ip" "$domain"
                 fi
-                ;;
-            i)
-                install_nginx
                 ;;
             u)
                 ip=$(echo "$OPTARG" | awk '{print $1}')
@@ -105,7 +100,23 @@ function main(){
     done
 }
 
+#install nginx and neccery tools
+function install(){
+    package=$1
+    if ! dpkg -s $package &>$NULL; then
+        echo "Installing $package..."
+        if ! sudo apt-get install $package -y >> $LOGFILE 2>&1; then
+            log ERROR "[install_nginx] failed to install $package"
+            echo -e "Failed to install package named: $pacge\
+            \nExisting Script..."
+            return 1
+            fi
+        else
+            echo "$package is already installed."
+    fi
+}
 
+#create  the config files
 function config_file(){
 
 # ADD a check that if the user inputs an ip or domain that already exit, out put the info to the user and try again
@@ -118,7 +129,7 @@ function config_file(){
 
 }
 
-
+#creates just a simple http web server
 function configure_vh(){
 
     config_file "ip" "domain"
@@ -131,7 +142,7 @@ function configure_vh(){
     fi
 }
 
-
+#creates an http web server with users directories
 function enable_user_dir(){
     sudo mkdir /home/$USER/public_html
     sudo chmod +x /home/$USER
@@ -148,7 +159,7 @@ function enable_user_dir(){
         fi
 }
 
-
+#creates an http web server with htpasswd authentication
 function auth(){
 
     if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
@@ -165,7 +176,7 @@ function auth(){
     curl -u $username:password -I http://$domain/secure
 }
 
-
+#creates a http web server with autentication using PAM
 function create_pam(){
 
     if ! sudo apt-get install libpam0g-dev libpam-modules -y >> $LOGFILE 2>&1; then
@@ -183,7 +194,7 @@ function create_pam(){
     sudo systemctl restart nginx
 }
 
-
+#Log template 
 function log(){
     touch $LOGFILE
     local level="$1"; shift
