@@ -1,30 +1,38 @@
-# Welcome to my nginx script!
+# Butter my Nginx
+
+## A script to deploy an nginx web server with ease
+
+This script will make the set-up of an nginx web server easy 😎
+
+### 📝Features
+
+- Choose if the web server is HTTP or HTTPS based with SSL certificate creation.
+- Create Public User directory
+- Create Authentcation using htpasswd
+- Do all the thing above all togther
 
 
-A bash script that makes downloading nginx, creating virtual hosts and authntication made simple.
+### 🚀 Usage
 
-
-### Contents -
-
-- Download Nginx
-- Configures a new virtual host
-- Creats a User_Dir public html for an account based web page
-- Authentication user for your webserver using htpasswd or PAM
-
-##### Disclaimer this script work on LMDE - Linux Mint Debian Edition, and it may not work as well on other distors.
-
-
-
-### Usage
-
-Run the script, Create a new Virtual-Host and choose how do you want to configure it.
 
 ```
-bash nginx.sh
+bash nginx.sh -d '<domain IP address> <domain name> -u <public_directory_name> -a -s
 ```
 
-In the current state of the script, you have to create a new VH to configure the rest of the option
-each option is a stand alone and will re-configure the last one.
+### 🛠️ Options:
+
+| Flag | Description |
+|------|-------------|
+| `-d '<domain_IP__address> <domain_name>'` | Specifies the domain name and address that will be added to /etc/hosts (Required). |
+| `-s` | Enables SSL, Create Certification. |
+| `-u <Public_Directory_name>` | Sets up user directory configuration. |
+| `-a` | Enables basic authentication. |
+
+
+## 🔧 Prerequisites
+- Root or Sudo user
+- Debian Family based distrobution
+- Bash shell installed
 
 
 ### You can find the contributors here:
