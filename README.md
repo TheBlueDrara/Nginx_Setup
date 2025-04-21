@@ -14,6 +14,8 @@ This script will make the set-up of an nginx web server easy 😎
 
 - Or do all of the above at once – fully automated!
 
+- Configure your web server using the main configuration template
+
 ### 🚀 Usage
 
 ```
@@ -34,6 +36,7 @@ sudo bash nginx.sh -d '<domain_IP> <domain_name>' -u <public_directory_name> -a 
 - Root or sudo privileges
 - A Debian-based Linux distribution
 - Bash shell installed
+- Nginx.template file
 
 ### 📋Task
 You can find the Contributors [here](CONTRIBUTORS.md)
