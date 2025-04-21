@@ -16,15 +16,15 @@ This script will make the set-up of an nginx web server easy 😎
 
 
 ```
-bash nginx.sh -d '<domain IP address> <domain name> -u <public_directory_name> -a -s
+sudo bash nginx.sh -d '<domain IP address> <domain name> -u <public_directory_name> -a -s
 ```
 
 ### 🛠️ Options:
 
 | Flag | Description |
 |------|-------------|
-| `-d '<domain_IP__address> <domain_name>'` | Specifies the domain name and address that will be added to /etc/hosts (Required). |
-| `-s` | Enables SSL, Create Certification. |
+| `-d '<domain_IP__address> <domain_name>'` | Specifies the domain name and address (Required). |
+| `-s` | Enables SSL and Creates Certification. |
 | `-u <Public_Directory_name>` | Sets up user directory configuration. |
 | `-a` | Enables basic authentication. |
 
