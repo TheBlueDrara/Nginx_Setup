@@ -1,5 +1,4 @@
-# Butter my Nginx
-
+# 🧈 Butter My Nginx — Easy, Automated Web Server Deployment
 
 ## A script to deploy an nginx web server with ease
 
