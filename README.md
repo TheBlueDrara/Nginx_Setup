@@ -1,49 +1,46 @@
 # Butter my Nginx
 
+
 ## A script to deploy an nginx web server with ease
 
 This script will make the set-up of an nginx web server easy 😎
 
 ### 📝Features
 
-- Choose if the web server is HTTP or HTTPS based with SSL certificate creation.
-- Create Public User directory
-- Create Authentcation using htpasswd
-- Do all the thing above all togther
+- Choose between HTTP or HTTPS with SSL certificate creation
 
+- Create a public user directory
+
+- Enable basic authentication using htpasswd
+
+- Or do all of the above at once – fully automated!
 
 ### 🚀 Usage
 
-
 ```
-sudo bash nginx.sh -d '<domain IP address> <domain name> -u <public_directory_name> -a -s
+sudo bash nginx.sh -d '<domain_IP> <domain_name>' -u <public_directory_name> -a -s
 ```
 
 ### 🛠️ Options:
 
 | Flag | Description |
 |------|-------------|
-| `-d '<domain_IP__address> <domain_name>'` | Specifies the domain name and address (Required). |
-| `-s` | Enables SSL and Creates Certification. |
-| `-u <Public_Directory_name>` | Sets up user directory configuration. |
-| `-a` | Enables basic authentication. |
+| `-d '<domain_IP> <domain_name>'` | Specifies the domain IP and domain name (Required)|
+| `-s` | Enables SSL and creates a certificate |
+| `-u <Public_Directory_name>` | Sets up the user’s public directory |
+| `-a` | Enables basic authentication with htpasswd |
 
 
 ## 🔧 Prerequisites
-- Root or Sudo user
-- Debian Family based distrobution
+- Root or sudo privileges
+- A Debian-based Linux distribution
 - Bash shell installed
 
+### 📋Task
+You can find the Contributors [here](CONTRIBUTORS.md)
 
-### You can find the contributors here:
-
-[Contributors](CONTRIBUTORS.md)
-
-
-### You can see the task here:
-
-[Task](TASK.md)
-
+### 🧑‍💻Contributors 
+You can see the Task [here](TASK.md)
 
 
 #### Daily WarHammer40K quote
