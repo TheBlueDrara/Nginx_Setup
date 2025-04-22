@@ -1,0 +1,25 @@
+domain_conf_https=$(cat << 'EOF'
+server {
+    listen 80;
+    server_name $domain;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name $domain;  
+
+    root /var/www/$domain;
+    index index.html index.htm;
+
+    ssl_certificate /etc/ssl/certs/$cert_file;        
+    ssl_certificate_key /etc/ssl/private/$key_file;  
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+EOF
+)

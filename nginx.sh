@@ -17,10 +17,11 @@ ENABLE_SSL=1
 ENABLE_USER_DIR=1
 ENABLE_AUTH=""
 PUBLIC_DIR="public_html"
-domain="example.com"
-ip=""
+DOMAIN="example.com"
+IP_ADDR=""
 . /etc/os-release
-. nginx.template
+. ./templates/*.tmpl
+
 
 
 function main(){
@@ -91,33 +92,39 @@ function main(){
     "
 
 
-    while getopts "d:u:a:p:s" opt; do
-        case $opt in
-            d)
-                ip=$(echo "$OPTARG" | awk '{print $1}')
-                domain=$(echo "$OPTARG" | awk '{print $2}')
+    while [[ $# != 0 ]] ; do
+        case $1 in
+            -d|--domain)
+                ip=$(echo "$2" | awk '{print $1}')
+                domain=$(echo "$3" | awk '{print $2}')
+                shift
                 ;;
-            u)
-                PUBLIC_DIR=$OPTARG
+            -u|--user-dir)
+                PUBLIC_DIR=$2
                 ENABLE_USER_DIR=0
+                shift
                 ;;
-            a)
+            -a|--auth)
                 ENABLE_AUTH=0
+                shift
                 ;;
-            p)
+            -p|--pam-auth)
                 #create_pam
                 ;;
-            s)
-                ENABLE_SSL=1
+            -s|--ssl)
+                ENABLE_SSL=$2
+                shift
+                ;;
         esac
+        shift
     done
 
     if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
         echo "Syntax error: Missing required argument -d '<IP_address> <Domain_Name>'"
-        return 1
+        return 1 # Not a function - 
     fi
 
-    configure_vh "$ip" "$domain" "$ENABLE_SSL"
+    configure_vh "$IP_ADDR" "$domain" "$ENABLE_SSL"
 
     if [[ $ENABLE_USER_DIR -eq 0 ]]; then
         enable_user_dir "$domain" "$PUBLIC_DIR"

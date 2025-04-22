@@ -1,0 +1,15 @@
+pam_conf=$(cat << 'EOF'
+server {
+    listen 80;
+    server_name $domain;
+    root /var/www/$domain;
+
+    index index.html;
+
+    location /auth-pam {
+        auth_pam "PAM Authentication";
+        auth_pam_service_name "nginx";
+    }
+}
+EOF
+)
