@@ -1,0 +1,23 @@
+domain_conf_http=$(cat << 'EOF'
+server {
+    listen 80;
+    server_name $domain;
+    root /var/www/$domain;
+
+    index index.html;
+EOF
+)
+
+
+html_template=$(cat << 'EOF'
+<html>
+    <body>
+        <div style="width: 100%; font-size: 40px; font-weight: bold; text-align: center;">
+            Test Page for PAM Auth
+        </div>
+    </body>
+</html>
+EOF
+)
+
+
