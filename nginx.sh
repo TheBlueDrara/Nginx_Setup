@@ -15,7 +15,7 @@ NULL=/dev/null
 TOOL_LIST=("nginx" "nginx-extras")
 ENABLE_SSL=1
 ENABLE_USER_DIR=1
-ENABLE_AUTH=""
+ENABLE_AUTH="1"
 PUBLIC_DIR="public_html"
 DOMAIN="example.com"
 IP_ADDR="127.0.0.1"
@@ -67,23 +67,27 @@ done #Loops all templates files to source them
 
 function main(){
 
+    echo -e "[INFO]" "Dear user if you need help you can add the -h | --help flag for more info!\n"
+    sleep 1
+
     #Checks if script runs as sudo or root user
     if [[ $EUID -ne 0 ]]; then
-        echo "Please run this script with sudo or as root user."
+        echo "[CRITICAL] Please run this script with sudo or as root user."
         exit 1
     fi
 
     #Check if runing debian distro
     if [[ $ID_LIKE == "debian" ]]; then
-        echo "Running on Debian-family distro. Executing main code..."
+        echo "[INFO] Running on Debian-family distro. Executing main code..."
+        sleep 1
     else
-        echo "This script is designed to run only on Debian-family distro only!"
+        echo "[CRITICAL] This script is designed to run only on Debian-family distro only!"
         exit 1
     fi
 
     #Check if template directory present
     if [[ ! -d templates ]]; then
-        echo "Missing nginx.template file"
+        echo "[CRITICAL] Missing template files - </templates/*.tmpl>"
         exit 1
     fi
 
@@ -91,59 +95,18 @@ function main(){
     for tool in ${TOOL_LIST[@]}; do
         install "$tool"
     done
-    
-    #Script menu
-   HELP_MENU=$(echo -e "\
-    \n======================================================\
-    \n \
-    \n🧠 SCRIPT USAGE HELP MENU\
-    \n--------------------------\
-    \n \
-    \nThis script allows you to create a basic HTTP/HTTPS web server\
-    \nwith optional features like authentication and user public directories.\
-    \n\
-    \n🔹 Required Flag:\
-    \n    -d '<IP_address> <Domain_Name>'\
-    \n       → Defines the IP and domain name for the virtual host.\
-    \n       → This flag is mandatory for the script to proceed.\
-    \n\
-    \n🔹 Optional Flags:\
-    \n    -u <public_directory_name>\
-    \n        → Creates a public_html directory for the current user.\
-    \n        → Useful for hosting personal web pages.\
-    \n\
-    \n    -a\
-    \n        → Enables basic authentication using htpasswd.\
-    \n        → Users will need a username and password to access the site.\
-    \n\
-    \n    -p\
-    \n        → PAM authentication (Pluggable Authentication Modules).\
-    \n        → ⚠️ Currently not supported in this version.\
-    \n\
-    \n    -s
-    \n        → Enables HTTPS web server
-    \n\
-    \n📦 Example Usages:\
-    \n    ./nginx.sh -d '127.0.0.10 mysite.local'\
-    \n    ./nginx.sh -d '127.0.0.20 secure.site' -a\
-    \n    ./nginx.sh -d '127.0.0.30 user.site' -u public_html\
-    \n    ./nginx.sh -d '127.0.0.40 ninja.com' -s
-    \n\
-    \n======================================================\
-    ")
-
 
     while [[ $# != 0 ]] ; do
         case $1 in
             -d|--domain)
-                IP_ADDR=$(echo "$2" | awk '{print $1}')
-                DOMAIN=$(echo "$3" | awk '{print $2}')
-                shift
+                IP_ADDR=$2
+                DOMAIN=$3
+                shift 3
                 ;;
             -u|--user-dir)
                 PUBLIC_DIR=$2
                 ENABLE_USER_DIR=0
-                shift
+                shift 2
                 ;;
             -a|--auth)
                 ENABLE_AUTH=0
@@ -151,21 +114,27 @@ function main(){
                 ;;
             -p|--pam-auth)
                 #create_pam
+                shift
+                ;;
+            -c|--cgi)
+                #create_cgi
+                shift
                 ;;
             -s|--ssl)
-                ENABLE_SSL=$2
+                ENABLE_SSL=0
                 shift
                 ;;
             -h|--help)
                 echo "$HELP_MENU"
                 exit 1
+                shift 
                 ;;
         esac
-        shift
     done
 
     if [[ "$DOMAIN" == "example.com" ]] || [[ "$IP_ADDR" == "127.0.0.1" ]]; then
         echo "[WARNING]" " Using default values: domain=$DOMAIN ip=$IP_ADDR"
+        sleep 1
     fi
     
     configure_vh "$IP_ADDR" "$DOMAIN" "$ENABLE_SSL"
@@ -175,7 +144,7 @@ function main(){
     fi
 
     if [[ $ENABLE_AUTH -eq 0 ]]; then
-        auth "$domain"
+        auth "$DOMAIN"
     fi
 
     restart_nginx
@@ -187,6 +156,7 @@ function install(){
     package=$1
     if ! dpkg -s $package &>$NULL; then
         echo "Installing $package..."
+        sleep 1
         if ! apt-get install $package -y >> $LOGFILE 2>&1; then
             log ERROR "[install_nginx] failed to install $package"
             echo -e "Failed to install package named: $package\
@@ -194,7 +164,8 @@ function install(){
             return 1
             fi
         else
-            echo "$package is already installed."
+            echo "[INFO] $package is already installed."
+            sleep 1
     fi
 }
 
@@ -205,16 +176,19 @@ function configure_vh(){
     local domain=$2
     local enable_ssl=$3
     config_file "$ip" "$domain"
-    if [[ $enable_ssl -eq 1 ]]; then
+    if [[ $enable_ssl -eq 0 ]]; then
+        echo "[INFO] SSL is enabled. Setting up certificates..."
+        sleep 1
         create_ssl "$domain"
     else
         eval "echo \"$domain_conf_http\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     fi
 
     if curl -I http://$domain; then
+    echo -e "\n"
         return 0
     else
-        echo "Something went wrong, please check the config files at /etc/nginx/sites-available/$domain"
+        echo "[WARNING] Something went wrong, please check the config files at /etc/nginx/sites-available/$domain"
         exit 1
     fi
 }
@@ -225,19 +199,29 @@ function config_file(){
     local ip=$1
     local domain=$2
     
-    if [[ ! -f $SITES_AVAILABLE/$domain ]];then
-        touch $SITES_AVAILABLE/$domain
+    if [[ ! -f "$SITES_AVAILABLE/$domain" ]];then
+        touch "$SITES_AVAILABLE/$domain"
+    else
+        echo "[WARNING] This domain name already exists, please try with a diffrent name!"
+        return 1
     fi
+
     if [[ ! -d /var/www/$domain ]];then
         mkdir -p /var/www/$domain
+    else
+        echo "[WARNING] This root directory already exists, please try with a different domain name!"
+        return 1
     fi
+
     echo "<h1>Hello from $domain!</h1>" | tee /var/www/$domain/index.html > $NULL
     echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
-    set -x
+
     if [[ ! -L $SITES_ENABLED/$domain ]];then
         ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED/$domain
+    else
+        echo "[WARNING] Cant soft link the "$SITES_AVAILABLE/$domain" to "$SITES_ENABLED" soft link already exists!" 
+        return 1
     fi
-    set +x
 }
 
 #Adds users directories to the web server config
@@ -246,15 +230,15 @@ function enable_user_dir(){
     local public_dir=$2
     local user_home=$(getent passwd "$SUDO_USER" | cut -d: -f6)
     local username="$SUDO_USER"
-    sudo mkdir $user_home/$public_dir
-    sudo chmod +x $user_home
-    sudo chmod 755 $user_home/$public_dir
+    mkdir $user_home/$public_dir
+    chmod +x $user_home ; chmod 755 $user_home/$public_dir
     echo "<h1>Hello from $username!</h1>" | tee $user_home/$public_dir/index.html > $NULL
     eval "echo \"$user_dir_conf\"" | tee -a $SITES_AVAILABLE/$domain > $NULL
         if curl -I http://$domain/~$user_home; then
+            echo -e "\n"
             return 0
 	    else
-	        echo "Something Went Wrong"
+	        echo "[WARNING] Something Went Wrong"
 	        return 1
         fi
 }
@@ -265,14 +249,16 @@ function auth(){
     local domain=$1
     if ! apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
         log ERROR "[install_nginx] failed to install apache2-utils"
-        echo -e "Failed to install package named: apache2-utils\
+        echo -e "[WARNING] Failed to install package named: apache2-utils\
         \nExisting Script..."
         return 1
     fi
-    read -rp "Please enter a username for the authentication: " username
+    read -rp "[INPUT] Please enter a username for the authentication: " username
     htpasswd -c /etc/nginx/.htpasswd $username
+    echo -e "\n"
     eval "echo \"$auth_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     curl -u $username:password -I http://$domain/secure
+    echo -e "\n"
 }
 
 #Creates SSL certificate and adds HTTPS config to the web server
@@ -286,9 +272,11 @@ function create_ssl(){
     local ssl_dir=$(dirname $key_file)
     mkdir -p "$ssl_dir"
     if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file_path" -out "$cert_file_path" -days 365 -nodes; then
-        echo "SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file""
+        echo -e "\n"
+        echo -e "[INFO] SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file"\
+        \n "
     else
-        echo "There was an error in creating the key and cert files"
+        echo "[WARNING] There was an error in creating the key and cert files"
         return 1
     fi
     eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
@@ -315,13 +303,15 @@ function create_ssl(){
 #Checks if the nginx syntax is correct before a restart
 function restart_nginx(){
 
-echo } >> $SITES_AVAILABLE/$domain
-if sudo nginx -t; then
-    sudo systemctl restart nginx
-else
-    echo "NGINX configuration test failed. Aborting restart..."
-    exit 1
-fi
+    echo } >> $SITES_AVAILABLE/$DOMAIN
+    if nginx -t; then
+        echo -e "\n"
+        systemctl restart nginx
+    else
+        echo -e "\n"
+        echo "[WARNING] NGINX configuration test failed. Aborting restart..."
+        exit 1
+    fi
 }
 
 #Log template 
