@@ -18,41 +18,8 @@ ENABLE_USER_DIR=1
 ENABLE_AUTH=""
 PUBLIC_DIR="public_html"
 DOMAIN="example.com"
-IP_ADDR=""
-. /etc/os-release
-. ./templates/*.tmpl
-
-
-
-function main(){
-
-    #Checks if script runs as sudo or root user
-    if [[ $EUID -ne 0 ]]; then
-        echo "Please run this script with sudo or as root user."
-        exit 1
-    fi
-
-    #Check if runing debian distro
-    if [[ $ID_LIKE == "debian" ]]; then
-        echo "Running on Debian-family distro. Executing main code..."
-    else
-        echo "This script is designed to run only on Debian-family distro only!"
-        exit 1
-    fi
-
-    #Check if template file present in the directory
-    if [[ ! -f nginx.template ]]; then
-        echo "Missing nginx.template file"
-        exit 1
-    fi
-
-    #Install neccery tools
-    for tool in ${TOOL_LIST[@]}; do
-        install "$tool"
-    done
-    
-    #Script menu
-    echo -e "\
+IP_ADDR="127.0.0.1"
+HELP_MENU=$(echo -e "\
     \n======================================================\
     \n \
     \n🧠 SCRIPT USAGE HELP MENU\
@@ -89,14 +56,88 @@ function main(){
     \n    ./nginx.sh -d '127.0.0.40 ninja.com' -s
     \n\
     \n======================================================\
-    "
+    ")
+
+. /etc/os-release
+for f in ./templates/*.tmpl; do
+source "$f";
+done #Loops all templates files to source them
+
+
+
+function main(){
+
+    #Checks if script runs as sudo or root user
+    if [[ $EUID -ne 0 ]]; then
+        echo "Please run this script with sudo or as root user."
+        exit 1
+    fi
+
+    #Check if runing debian distro
+    if [[ $ID_LIKE == "debian" ]]; then
+        echo "Running on Debian-family distro. Executing main code..."
+    else
+        echo "This script is designed to run only on Debian-family distro only!"
+        exit 1
+    fi
+
+    #Check if template directory present
+    if [[ ! -d templates ]]; then
+        echo "Missing nginx.template file"
+        exit 1
+    fi
+
+    #Install neccery tools
+    for tool in ${TOOL_LIST[@]}; do
+        install "$tool"
+    done
+    
+    #Script menu
+   HELP_MENU=$(echo -e "\
+    \n======================================================\
+    \n \
+    \n🧠 SCRIPT USAGE HELP MENU\
+    \n--------------------------\
+    \n \
+    \nThis script allows you to create a basic HTTP/HTTPS web server\
+    \nwith optional features like authentication and user public directories.\
+    \n\
+    \n🔹 Required Flag:\
+    \n    -d '<IP_address> <Domain_Name>'\
+    \n       → Defines the IP and domain name for the virtual host.\
+    \n       → This flag is mandatory for the script to proceed.\
+    \n\
+    \n🔹 Optional Flags:\
+    \n    -u <public_directory_name>\
+    \n        → Creates a public_html directory for the current user.\
+    \n        → Useful for hosting personal web pages.\
+    \n\
+    \n    -a\
+    \n        → Enables basic authentication using htpasswd.\
+    \n        → Users will need a username and password to access the site.\
+    \n\
+    \n    -p\
+    \n        → PAM authentication (Pluggable Authentication Modules).\
+    \n        → ⚠️ Currently not supported in this version.\
+    \n\
+    \n    -s
+    \n        → Enables HTTPS web server
+    \n\
+    \n📦 Example Usages:\
+    \n    ./nginx.sh -d '127.0.0.10 mysite.local'\
+    \n    ./nginx.sh -d '127.0.0.20 secure.site' -a\
+    \n    ./nginx.sh -d '127.0.0.30 user.site' -u public_html\
+    \n    ./nginx.sh -d '127.0.0.40 ninja.com' -s
+    \n\
+    \n======================================================\
+    ")
 
 
     while [[ $# != 0 ]] ; do
         case $1 in
             -d|--domain)
-                ip=$(echo "$2" | awk '{print $1}')
-                domain=$(echo "$3" | awk '{print $2}')
+                IP_ADDR=$(echo "$2" | awk '{print $1}')
+                DOMAIN=$(echo "$3" | awk '{print $2}')
                 shift
                 ;;
             -u|--user-dir)
@@ -115,19 +156,22 @@ function main(){
                 ENABLE_SSL=$2
                 shift
                 ;;
+            -h|--help)
+                echo "$HELP_MENU"
+                exit 1
+                ;;
         esac
         shift
     done
 
-    if [[ -z "$domain" ]] || [[ -z "$ip" ]]; then
-        echo "Syntax error: Missing required argument -d '<IP_address> <Domain_Name>'"
-        return 1 # Not a function - 
+    if [[ "$DOMAIN" == "example.com" ]] || [[ "$IP_ADDR" == "127.0.0.1" ]]; then
+        echo "[WARNING]" " Using default values: domain=$DOMAIN ip=$IP_ADDR"
     fi
-
-    configure_vh "$IP_ADDR" "$domain" "$ENABLE_SSL"
+    
+    configure_vh "$IP_ADDR" "$DOMAIN" "$ENABLE_SSL"
 
     if [[ $ENABLE_USER_DIR -eq 0 ]]; then
-        enable_user_dir "$domain" "$PUBLIC_DIR"
+        enable_user_dir "$DOMAIN" "$PUBLIC_DIR"
     fi
 
     if [[ $ENABLE_AUTH -eq 0 ]]; then
@@ -143,7 +187,7 @@ function install(){
     package=$1
     if ! dpkg -s $package &>$NULL; then
         echo "Installing $package..."
-        if ! sudo apt-get install $package -y >> $LOGFILE 2>&1; then
+        if ! apt-get install $package -y >> $LOGFILE 2>&1; then
             log ERROR "[install_nginx] failed to install $package"
             echo -e "Failed to install package named: $package\
             \nExisting Script..."
@@ -180,11 +224,20 @@ function config_file(){
 
     local ip=$1
     local domain=$2
-    sudo touch $SITES_AVAILABLE/$domain
-    sudo mkdir /var/www/$domain
-    echo "<h1>Hello from $domain!</h1>" | sudo tee /var/www/$domain/index.html > $NULL
+    
+    if [[ ! -f $SITES_AVAILABLE/$domain ]];then
+        touch $SITES_AVAILABLE/$domain
+    fi
+    if [[ ! -d /var/www/$domain ]];then
+        mkdir -p /var/www/$domain
+    fi
+    echo "<h1>Hello from $domain!</h1>" | tee /var/www/$domain/index.html > $NULL
     echo "$ip $domain" | sudo tee -a /etc/hosts > $NULL
-    sudo ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED
+    set -x
+    if [[ ! -L $SITES_ENABLED/$domain ]];then
+        ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED/$domain
+    fi
+    set +x
 }
 
 #Adds users directories to the web server config
@@ -196,8 +249,8 @@ function enable_user_dir(){
     sudo mkdir $user_home/$public_dir
     sudo chmod +x $user_home
     sudo chmod 755 $user_home/$public_dir
-    echo "<h1>Hello from $username!</h1>" | sudo tee $user_home/$public_dir/index.html > $NULL
-    eval "echo \"$user_dir_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
+    echo "<h1>Hello from $username!</h1>" | tee $user_home/$public_dir/index.html > $NULL
+    eval "echo \"$user_dir_conf\"" | tee -a $SITES_AVAILABLE/$domain > $NULL
         if curl -I http://$domain/~$user_home; then
             return 0
 	    else
@@ -210,14 +263,14 @@ function enable_user_dir(){
 function auth(){
 
     local domain=$1
-    if ! sudo apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
+    if ! apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
         log ERROR "[install_nginx] failed to install apache2-utils"
         echo -e "Failed to install package named: apache2-utils\
         \nExisting Script..."
         return 1
     fi
     read -rp "Please enter a username for the authentication: " username
-    sudo htpasswd -c /etc/nginx/.htpasswd $username
+    htpasswd -c /etc/nginx/.htpasswd $username
     eval "echo \"$auth_conf\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
     curl -u $username:password -I http://$domain/secure
 }
@@ -232,7 +285,7 @@ function create_ssl(){
     local key_file_path="/etc/ssl/private/$key_file"
     local ssl_dir=$(dirname $key_file)
     mkdir -p "$ssl_dir"
-    if sudo openssl req -x509 -newkey rsa:4096 -keyout "$key_file_path" -out "$cert_file_path" -days 365 -nodes; then
+    if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file_path" -out "$cert_file_path" -days 365 -nodes; then
         echo "SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file""
     else
         echo "There was an error in creating the key and cert files"
@@ -274,7 +327,7 @@ fi
 #Log template 
 function log(){
 
-    sudo touch $LOGFILE
+    touch $LOGFILE
     local level="$1"; shift
     local message="$*"
     local timestamp
