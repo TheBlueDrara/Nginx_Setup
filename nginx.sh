@@ -19,55 +19,62 @@ ENABLE_AUTH="1"
 PUBLIC_DIR="public_html"
 DOMAIN="Banana.com"
 IP_ADDR="127.0.0.1"
-HELP_MENU=$(echo -e "\
-    \n======================================================\
-    \n \
-    \n🧠 SCRIPT USAGE HELP MENU\
-    \n--------------------------\
-    \n \
-    \nThis script allows you to create a basic HTTP/HTTPS web server\
-    \nwith optional features like authentication and user public directories.\
-    \n\
-    \n🔹 Required Flag:\
-    \n    -d '<IP_address> <Domain_Name>'\
-    \n       → Defines the IP and domain name for the virtual host.\
-    \n       → This flag is mandatory for the script to proceed.\
-    \n\
-    \n🔹 Optional Flags:\
-    \n    -u <public_directory_name>\
-    \n        → Creates a public_html directory for the current user.\
-    \n        → Useful for hosting personal web pages.\
-    \n\
-    \n    -a\
-    \n        → Enables basic authentication using htpasswd.\
-    \n        → Users will need a username and password to access the site.\
-    \n\
-    \n    -p\
-    \n        → PAM authentication (Pluggable Authentication Modules).\
-    \n        → ⚠️ Currently not supported in this version.\
-    \n\
-    \n    -s
-    \n        → Enables HTTPS web server
-    \n\
-    \n📦 Example Usages:\
-    \n    ./nginx.sh -d '127.0.0.10 mysite.local'\
-    \n    ./nginx.sh -d '127.0.0.20 secure.site' -a\
-    \n    ./nginx.sh -d '127.0.0.30 user.site' -u public_html\
-    \n    ./nginx.sh -d '127.0.0.40 ninja.com' -s
-    \n\
-    \n======================================================\
-    ")
+HELP_MENU=$(echo -e "
+\e[36m
+===========================================================
+🧠 NGINX SETUP SCRIPT - HELP MENU
+-----------------------------------------------------------
+\e[0m
 
+\e[1mDescription:\e[0m
+  This script installs and configures an Nginx web server with 
+  optional features like SSL, user public directories, and 
+  basic authentication. It also works out of the box with 
+  default settings.
+
+\e[1mUsage:\e[0m
+  sudo bash nginx.sh [options]
+
+\e[1mNote:\e[0m
+  If no options are passed, the script will create a default 
+  HTTP server at \e[32m127.0.0.1\e[0m with domain \e[32mBanana.com\e[0m.
+
+\e[1mAvailable Options:\e[0m
+
+  \e[38;5;81m-d\e[0m | \e[38;5;81m--domain <IP_address> <domain_name>\e[0m  
+      → Set the IP and domain name  
+      → Overrides the default values  
+
+  \e[38;5;83m-u\e[0m | \e[38;5;83m--user-dir <public_directory_name>\e[0m  
+      → Create a user public directory (e.g., public_html)  
+
+  \e[38;5;214m-a\e[0m | \e[38;5;214m--auth\e[0m  
+      → Enable basic authentication using htpasswd  
+
+  \e[38;5;203m-p\e[0m | \e[38;5;203m--pam-auth\e[0m  
+      → PAM authentication (currently not supported)  
+
+  \e[38;5;171m-c\e[0m | \e[38;5;171m--cgi\e[0m  
+      → Enable CGI scripting support (feature placeholder)  
+
+  \e[38;5;117m-s\e[0m | \e[38;5;117m--ssl\e[0m  
+      → Enable HTTPS and auto-generate SSL certificate  
+
+  \e[38;5;245m-h\e[0m | \e[38;5;245m--help\e[0m  
+      → Show this help menu and exit  
+
+\e[36m===========================================================\e[0m"
+)
 . /etc/os-release
-for f in ./templates/*.tmpl; do
-source "$f";
-done #Loops all templates files to source them
+#Loops all templates files to source them
+for f in ./templates/*.tmpl; do source "$f"; done 
 
 
 
 function main(){
 
     log MISC "==== Starting nginx setup script ===="
+    sleep 1
 
     log INFO "Dear user if you need help you can add the -h | --help flag for more info!"
     sleep 1
@@ -92,11 +99,6 @@ function main(){
         log WARNING "Missing template files - </templates/*.tmpl>"
         exit 1
     fi
-
-    #Install neccery tools
-    for tool in ${TOOL_LIST[@]}; do
-        install "$tool"
-    done
 
     while [[ $# != 0 ]] ; do
         case $1 in
@@ -132,6 +134,11 @@ function main(){
                 shift 
                 ;;
         esac
+    done
+
+    #Install neccery tools
+    for tool in ${TOOL_LIST[@]}; do
+        install "$tool"
     done
 
     if [[ "$DOMAIN" == "example.com" ]] || [[ "$IP_ADDR" == "127.0.0.1" ]]; then
