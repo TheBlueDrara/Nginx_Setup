@@ -1,14 +1,31 @@
-# Nginx Task
+# 🚀 Nginx Configuration Task
 
-Create shell script that will setup user_dir, auth, auth with pam and CGI scripting.
+Create a shell script that sets up the following optional Nginx features:
 
-### Tasks
+- 🏠 **User Public Directory** (`user_dir`)
+- 🔐 **Basic Authentication**
+- 🧩 **PAM-based Authentication**
+- ⚙️ **CGI Scripting Support**
 
-- Check that nginx is installed
-- Check that virtual host is configured, if not ask for virtual-host name and configure it.
-- Check that dependecies of user_dir, auth and CGI are present, if not install
-- Provide argument based system for installing and configuring each of the options above.
+---
 
+### ✅ Objectives
+
+- 📦 **Verify Nginx Installation**  
+  Ensure Nginx is installed; if not, prompt or install it.
+
+- 🌐 **Check Virtual Host Configuration**  
+  Confirm that a virtual host is configured. If not, prompt for a domain name and configure it.
+
+- 🔍 **Check & Install Dependencies**  
+  Verify that required packages for `user_dir`, `auth`, and `CGI` are present. Install missing dependencies automatically.
+
+- 🧰 **Support for Arguments & Flags**  
+  Implement a flexible argument-based system to configure each feature individually or in combination via command-line flags.
+
+---
+
+This script should be modular, reusable, and user-friendly. Bonus points for adding colorful logging and help menus!
 
 [Link](https://gitlab.com/vaiolabs-io/nginx-shallow-dive)
 
