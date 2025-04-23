@@ -10,7 +10,7 @@ set -o pipefail
 ################################## End Safe Header ############################
 SITES_AVAILABLE=/etc/nginx/sites-available
 SITES_ENABLED=/etc/nginx/sites-enabled/
-LOGFILE=/var/nginx_script_logs
+LOGFILE=$HOME/nginx_script_logs
 NULL=/dev/null
 TOOL_LIST=("nginx" "nginx-extras")
 ENABLE_SSL=1
@@ -67,27 +67,29 @@ done #Loops all templates files to source them
 
 function main(){
 
-    echo -e "[INFO]" "Dear user if you need help you can add the -h | --help flag for more info!\n"
+    log MISC "==== Starting nginx setup script ===="
+
+    log INFO "Dear user if you need help you can add the -h | --help flag for more info!"
     sleep 1
 
     #Checks if script runs as sudo or root user
     if [[ $EUID -ne 0 ]]; then
-        echo "[CRITICAL] Please run this script with sudo or as root user."
+        log WARNING "Please run this script with sudo or as root user."
         exit 1
     fi
 
     #Check if runing debian distro
     if [[ $ID_LIKE == "debian" ]]; then
-        echo "[INFO] Running on Debian-family distro. Executing main code..."
+        log INFO "Running on Debian-family distro. Executing main code..."
         sleep 1
     else
-        echo "[CRITICAL] This script is designed to run only on Debian-family distro only!"
+        log WARNING "This script is designed to run only on Debian-family distro only!"
         exit 1
     fi
 
     #Check if template directory present
     if [[ ! -d templates ]]; then
-        echo "[CRITICAL] Missing template files - </templates/*.tmpl>"
+        log WARNING "Missing template files - </templates/*.tmpl>"
         exit 1
     fi
 
@@ -133,7 +135,7 @@ function main(){
     done
 
     if [[ "$DOMAIN" == "example.com" ]] || [[ "$IP_ADDR" == "127.0.0.1" ]]; then
-        echo -e "[WARNING] Using default values: domain= <$DOMAIN> ip= <$IP_ADDR>\n"
+        log WARNING "Using default values: domain= <$DOMAIN> ip= <$IP_ADDR>"
         sleep 1
     fi
     
@@ -148,6 +150,8 @@ function main(){
     fi
 
     restart_nginx
+
+    log INFO "==== Script completed successfully ===="
 }
 
 #install nginx and neccery tools
@@ -164,7 +168,7 @@ function install(){
             return 1
             fi
         else
-            echo "[INFO] $package is already installed."
+            log INFO "$package is already installed."
             sleep 1
     fi
 }
@@ -177,7 +181,7 @@ function configure_vh(){
     local enable_ssl=$3
     config_file "$ip" "$domain"
     if [[ $enable_ssl -eq 0 ]]; then
-        echo "[INFO] SSL is enabled. Setting up certificates..."
+        log INFO "SSL is enabled. Setting up certificates..."
         sleep 1
         create_ssl "$domain"
     else
@@ -188,7 +192,7 @@ function configure_vh(){
     echo -e "\n"
         return 0
     else
-        echo "[WARNING] Something went wrong, please check the config files at /etc/nginx/sites-available/$domain"
+        log WARNING "Something went wrong, please check the config files at /etc/nginx/sites-available/$domain"
         exit 1
     fi
 }
@@ -202,14 +206,14 @@ function config_file(){
     if [[ ! -f "$SITES_AVAILABLE/$domain" ]];then
         touch "$SITES_AVAILABLE/$domain"
     else
-        echo "[WARNING] This domain name already exists, please try with a diffrent name!"
+        log WARNING "This domain name already exists, please try with a diffrent name!"
         return 1
     fi
 
     if [[ ! -d /var/www/$domain ]];then
         mkdir -p /var/www/$domain
     else
-        echo "[WARNING] This root directory already exists, please try with a different domain name!"
+        log WARNING "This root directory already exists, please try with a different domain name!"
         return 1
     fi
 
@@ -219,7 +223,7 @@ function config_file(){
     if [[ ! -L $SITES_ENABLED/$domain ]];then
         ln -s $SITES_AVAILABLE/$domain $SITES_ENABLED/$domain
     else
-        echo "[WARNING] Cant soft link the "$SITES_AVAILABLE/$domain" to "$SITES_ENABLED" soft link already exists!" 
+        log WARNING "Cant soft link the "$SITES_AVAILABLE/$domain" to "$SITES_ENABLED" soft link already exists!" 
         return 1
     fi
 }
@@ -238,7 +242,7 @@ function enable_user_dir(){
             echo -e "\n"
             return 0
 	    else
-	        echo "[WARNING] Something Went Wrong"
+	        log WARNING "Something Went Wrong, user directory failed please check config files"
 	        return 1
         fi
 }
@@ -248,8 +252,8 @@ function auth(){
 
     local domain=$1
     if ! apt-get install apache2-utils -y >> $LOGFILE 2>&1; then
-        log ERROR "[install_nginx] failed to install apache2-utils"
-        echo -e "[WARNING] Failed to install package named: apache2-utils\
+        log ERROR "[install_apache2-utils] failed to install apache2-utils"
+        log WARNING "Failed to install package named: apache2-utils\
         \nExisting Script..."
         return 1
     fi
@@ -273,10 +277,10 @@ function create_ssl(){
     mkdir -p "$ssl_dir"
     if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file_path" -out "$cert_file_path" -days 365 -nodes; then
         echo -e "\n"
-        echo -e "[INFO] SSL key and cery were created at keyfile: "$key_file" certfile: "$cert_file"\
+        log WARNING "SSL key and Certificate were created at keyfile: "$key_file" certfile: "$cert_file"\
         \n "
     else
-        echo "[WARNING] There was an error in creating the key and cert files"
+        log WARNING "There was an error in creating the key and cert files"
         return 1
     fi
     eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
@@ -309,7 +313,7 @@ function restart_nginx(){
         systemctl restart nginx
     else
         echo -e "\n"
-        echo "[WARNING] NGINX configuration test failed. Aborting restart..."
+        log WARNING "NGINX configuration test failed. Aborting restart..."
         exit 1
     fi
 }
@@ -322,6 +326,14 @@ function log(){
     local message="$*"
     local timestamp
     timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+
+    case "$level" in
+        INFO) echo -e "\e[32m[$timestamp] [$level]\e[0m $message" ;;
+        WARNING) echo -e "\e[33m[$timestamp] [$level]\e[0m $message" ;;
+        ERROR) echo -e "\e[31m[$timestamp] [$level]\e[0m $message" ;;
+        MISC) echo -e "\e[34m[$timestamp] [$level]\e[0m $message" ;;
+    esac
+
     echo "[$timestamp] [$level] $message" >> $LOGFILE
 }
 
