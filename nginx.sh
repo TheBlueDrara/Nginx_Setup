@@ -17,7 +17,7 @@ ENABLE_SSL=1
 ENABLE_USER_DIR=1
 ENABLE_AUTH="1"
 PUBLIC_DIR="public_html"
-DOMAIN="example.com"
+DOMAIN="Banana.com"
 IP_ADDR="127.0.0.1"
 HELP_MENU=$(echo -e "\
     \n======================================================\
@@ -133,7 +133,7 @@ function main(){
     done
 
     if [[ "$DOMAIN" == "example.com" ]] || [[ "$IP_ADDR" == "127.0.0.1" ]]; then
-        echo "[WARNING]" " Using default values: domain=$DOMAIN ip=$IP_ADDR"
+        echo -e "[WARNING] Using default values: domain= <$DOMAIN> ip= <$IP_ADDR>\n"
         sleep 1
     fi
     
