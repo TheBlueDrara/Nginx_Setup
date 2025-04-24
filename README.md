@@ -2,7 +2,7 @@
 
 ## A Bash script to deploy an Nginx web server effortlessly
 
-This script helps you spin up a web server with just a single command. Whether you want a quick HTTP server or a secure HTTPS site with authentication and user directories — this tool does it all.
+This script helps you to create a web server with just a single command.
 
 ---
 
@@ -12,9 +12,9 @@ This script helps you spin up a web server with just a single command. Whether y
 - Choose between HTTP or HTTPS with automatic SSL certificate creation
 - Create a public user directory for personalized content
 - Enable basic authentication using `htpasswd`
-- Or do all of the above at once – fully automated!
+- Do all of the above at once – fully automated!
 - Configures your web server using sourced configuration templates
-- Saves logs in the users /Home directory
+- Saves logs durring run time
 ---
 
 ### 🚀 Usage
@@ -64,8 +64,8 @@ Project tasks are documented in [here](TASK.md)
 
 ### ⚙️ Dev Notes
 
-- The script uses modular Bash functions
-- Color-coded logging that is saved in the users /Home directory in a file named "nginx_script_logs"
+- The script uses modular Bash functionsi.
+- Color-coded logging that is saved in the users /Home/<User> directory in a file named "nginx_script_logs"
 - You can extend it with your own `.tmpl` configuration blocks inside the `templates` directory.
 - For the machine god!
 

@@ -3,7 +3,7 @@
 #Developed by Alex Umansky aka TheBlueDrara
 #Porpuse a tool to install nginx and config it 
 #Date 1.3.2025
-#Version 3.0.2
+#Version 4.0.1
 set -o nounset
 set -o errexit
 set -o pipefail
@@ -20,16 +20,21 @@ PUBLIC_DIR="public_html"
 DOMAIN="Banana.com"
 IP_ADDR="127.0.0.1"
 . /etc/os-release
-#Loops all templates files to source them
 for f in ./templates/*.tmpl; do source "$f"; done 
 
 
+#To ADD
+# - Config file to clean the sript running process during the creation of SSL cret
+# - Check if domain exists in /etc/hosts
+# - CGI scripting
+# - PAM
 
+#Main func to rule them all
 function main(){
-
+    #Marks the start of the script for the logs
     log MISC "==== Starting nginx setup script ===="
     sleep 1
-
+    #Info for the user
     log INFO "Dear user if you need help you can add the -h | --help flag for more info!"
     sleep 1
 
@@ -48,7 +53,7 @@ function main(){
         exit 1
     fi
 
-    #Check if template directory present
+    #Check if templates directory present
     if [[ ! -d templates ]]; then
         log WARNING "Missing template files - </templates/*.tmpl>"
         exit 1
@@ -95,23 +100,28 @@ function main(){
         install "$tool"
     done
 
+    #Default arguments if no user input
     if [[ "$DOMAIN" == "example.com" ]] || [[ "$IP_ADDR" == "127.0.0.1" ]]; then
         log WARNING "Using default values: domain= <$DOMAIN> ip= <$IP_ADDR>"
         sleep 1
     fi
-    
+
+    #Create VH
     configure_vh "$IP_ADDR" "$DOMAIN" "$ENABLE_SSL"
 
+    #Config user directories if given the right flag
     if [[ $ENABLE_USER_DIR -eq 0 ]]; then
         enable_user_dir "$DOMAIN" "$PUBLIC_DIR"
     fi
-
+    #Config auth using htpasswd if given the right flag
     if [[ $ENABLE_AUTH -eq 0 ]]; then
         auth "$DOMAIN"
     fi
 
+    #Check config files syntax and restart
     restart_nginx
-
+    
+    #Mark the end of the script run 
     log INFO "==== Script completed successfully ===="
 }
 
@@ -236,6 +246,7 @@ function create_ssl(){
     local key_file_path="/etc/ssl/private/$key_file"
     local ssl_dir=$(dirname $key_file)
     mkdir -p "$ssl_dir"
+
     if  openssl req -x509 -newkey rsa:4096 -keyout "$key_file_path" -out "$cert_file_path" -days 365 -nodes; then
         echo -e "\n"
         log WARNING "SSL key and Certificate were created at keyfile: "$key_file" certfile: "$cert_file"\
@@ -247,25 +258,7 @@ function create_ssl(){
     eval "echo \"$domain_conf_https\"" | sudo tee -a $SITES_AVAILABLE/$domain > $NULL
 }
 
-#creates a http web server with autentication using PAM
-#function create_pam(){
-#
-#    if ! sudo apt-get install libpam0g-dev libpam-modules -y >> $LOGFILE 2>&1; then
-#        log ERROR "[install_nginx] failed to install PAM"
-#	    echo -e "Failed to install PAM\
-#	    \nExisting Script..."
-#	    return 1
-#    fi
-#    config_file "ip" "domain"
-#    eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
-#    echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
-#    sudo usermod -aG shadow www-data
-#    sudo mkdir /var/www/html/auth-pam
-#    echo "$html_template" | sudo tee -a /var/www/html/auth-pam/index.html > $NULL
-#    sudo systemctl restart nginx
-#}
-
-#Checks if the nginx syntax is correct before a restart
+#Checks if the nginx syntax is correct and restart the process
 function restart_nginx(){
 
     echo } >> $SITES_AVAILABLE/$DOMAIN
@@ -298,7 +291,27 @@ function log(){
     echo "[$timestamp] [$level] $message" >> $LOGFILE
 }
 
-
 main "$@"
 
+
+
+
+
+#creates a http web server with autentication using PAM
+#function create_pam(){
+#
+#    if ! sudo apt-get install libpam0g-dev libpam-modules -y >> $LOGFILE 2>&1; then
+#        log ERROR "[install_nginx] failed to install PAM"
+#       echo -e "Failed to install PAM\
+#       \nExisting Script..."
+#       return 1
+#    fi
+#    config_file "ip" "domain"
+#    eval "echo \"$pam_conf\"" | sudo tee $SITES_AVAILABLE/$domain > $NULL
+#    echo "auth required pam_unix.so account required pam_unix.so"| sudo tee -a /etc/pam.d/nginx
+#    sudo usermod -aG shadow www-data
+#    sudo mkdir /var/www/html/auth-pam
+#    echo "$html_template" | sudo tee -a /var/www/html/auth-pam/index.html > $NULL
+#    sudo systemctl restart nginx
+#}
 
